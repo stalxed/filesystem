@@ -1,0 +1,8 @@
+<phpunit bootstrap="./Bootstrap.php" colors="true">
+    <testsuites>
+        <testsuite name="Stalxed Test Suite">
+            <directory>./StalxedTest</directory>
+            <exclude>./StalxedTest/_files/</exclude>
+        </testsuite>
+    </testsuites>
+</phpunit>

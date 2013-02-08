@@ -1,0 +1,31 @@
+{
+	"name": "stalxed/filesystem",
+	"description": "The library provides a number of features of working with the file system.",
+	"type": "library",
+	"homepage": "http://stalxed.ru",
+	"authors": [
+        {
+            "name": "stalxed",
+            "email": "public@stalxed.ru"
+        }
+    ],
+	"require": {
+	    "php": ">=5.3.0",
+		"stalxed/system": "dev-master"
+	},
+    "require-dev": {
+        "mikey179/vfsStream": "v1.1.0"
+    },
+	"autoload": {
+		"psr-0": {
+            "Stalxed\\FileSystem\\": "library/",
+            "StalxedTest\\FileSystem\\": "tests/unit/"
+		}
+	},
+	"repositories": [
+        {
+            "type": "vcs",
+            "url": "git@bitbucket.org:stalxed/system.git"
+        }
+    ]
+}
