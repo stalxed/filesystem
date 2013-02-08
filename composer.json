@@ -28,5 +28,6 @@
             "type": "vcs",
             "url": "git@bitbucket.org:stalxed/system.git"
         }
-    ]
+    ],
+    "minimum-stability": "dev"
 }
