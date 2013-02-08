@@ -3,6 +3,7 @@
 	"description": "The library provides a number of features of working with the file system.",
 	"type": "library",
 	"homepage": "http://stalxed.ru",
+	"license": "BSD",
 	"authors": [
         {
             "name": "stalxed",
