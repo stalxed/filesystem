@@ -3,68 +3,28 @@ namespace Stalxed\FileSystem;
 
 use Stalxed\System\Random;
 
-/**
- * Выполняет различные операции с файлом.
- *
- */
-class File
+class FileObject extends \SplFileObject
 {
-    /**
-     * Путь к файлу.
-     *
-     * @var string
-     */
-    private $path;
-
-    /**
-     * Конструктор.
-     * Устанавливает путь к файлу.
-     *
-     * @param string $path
-     */
-    public function __construct($path)
+    public function __construct($filename, $openMode = 'r', $useIncludePath = 'false')
     {
-        $this->setPath($path);
+        $this->setFileClass('Stalxed\FileSystem\FileObject');
+        $this->setInfoClass('Stalxed\FileSystem\FileInfo');
+
+        parent::__construct($filename, $openMode, $useIncludePath);
     }
 
     /**
-     * Устанавливает путь к файлу.
+     * (non-PHPdoc)
      *
-     * @param string $path
+     * @see SplFileObject::getRealPath()
      */
-    public function setPath($path)
+    public function getRealPath()
     {
-        $this->path = $path;
-    }
+        if (in_array('vfs', stream_get_wrappers())) {
+            return $this->getPathname();
+        }
 
-    /**
-     * Проверяет, существует ли файл.
-     *
-     * @return boolean
-     */
-    public function isExists()
-    {
-        return is_file($this->path);
-    }
-
-    /**
-     * Проверяет, доступен ли файл для чтения.
-     *
-     * @return boolean
-     */
-    public function isReadable()
-    {
-        return is_file($this->path) && is_readable($this->path);
-    }
-
-    /**
-     * Проверяет, доступен ли файл для записи.
-     *
-     * @return boolean
-     */
-    public function isWritable()
-    {
-        return is_file($this->path) && is_writable($this->path);
+        return parent::getRealPath();
     }
 
     /**
@@ -78,66 +38,14 @@ class File
     }
 
     /**
-     * Возвращает путь к файлу.
-     *
-     * @return string
-     */
-    public function getPath()
-    {
-        return $this->path;
-    }
-
-    /**
-     * Возвращает размер файла.
-     *
-     * @return integer
-     */
-    public function getSize()
-    {
-        return $this->createFileObject()->getSize();
-    }
-
-    /**
-     * Создаёт файл.
-     * По умолчанию устанавливает права доступа 0644.
-     *
-     * @param integer $mode
-     * @throws System_FSException
-     */
-    public function create($mode = 0644)
-    {
-        if (!@touch($this->path)) {
-            throw new Exception\RuntimeException('Failed to create file.', $this->path);
-        }
-
-        if (!@chmod($this->path, $mode)) {
-            throw new Exception\RuntimeException('Failed to change permissions.', $this->path);
-        }
-    }
-
-    /**
-     * Удаляет файл.
-     *
-     * @throws System_FSException
-     */
-    public function delete()
-    {
-        if (!@unlink($this->path)) {
-            throw new Exception\RuntimeException('Failed to delete file.', $this->path);
-        }
-    }
-
-    /**
      * Возвращает количество строчек в файле.
      *
      * @return integer
      */
     public function getLineCount()
     {
-        $file = $this->createFileObject();
-
         $count = 0;
-        foreach ($file as $temp) {
+        foreach ($this as $temp) {
             ++$count;
         }
 
@@ -152,9 +60,9 @@ class File
      */
     public function getContents()
     {
-        $content = @file_get_contents($this->path);
-        if ($content === false) {
-            throw new Exception\RuntimeException('Failed to read file.', $this->path);
+        $content = '';
+        while (! $this->eof()) {
+            $content .= $this->fgets();
         }
 
         return $content;
@@ -170,36 +78,12 @@ class File
      */
     public function getLines()
     {
-        $lines = @file($this->path);
-        if ($lines === false) {
-            throw new Exception\RuntimeException('Failed to read file.', $this->path);
-        }
-
-        foreach ($lines as $key => $line) {
-            $lines[$key] = trim($lines[$key]);
+        $lines = array();
+        foreach ($this as $key => $line) {
+            $lines[$key] = $line;
         }
 
         return $lines;
-    }
-
-    /**
-     * Записывает содержимое переменной в начало файла.
-     * Если файл не существует, то создаёт его.
-     * Если файл существует и содержит данные, то обрезает файл
-     * до нулевой длины.
-     *
-     * @param string $content
-     * @throws System_FSException
-     */
-    public function putContents($content)
-    {
-        $file = $this->createFileObject('w');
-        if (!$file->flock(LOCK_EX)) {
-            throw new Exception\RuntimeException('Failed to lock file.', $this->path);
-        }
-
-        $file->fwrite($content);
-        $file->flock(LOCK_UN);
     }
 
     /**
@@ -209,15 +93,14 @@ class File
      * @param string $content
      * @throws System_FSException
      */
-    public function appendContents($content)
+    public function safeWrite($content)
     {
-        $file = $this->createFileObject('a');
         //for () {
-            if ($file->flock(LOCK_EX | LOCK_NB)) {
-                $file->fwrite($content);
-                $file->flock(LOCK_UN);
-            }
-       // }
+        if ($this->flock(LOCK_EX | LOCK_NB)) {
+            $this->fwrite($content);
+            $this->flock(LOCK_UN);
+        }
+        // }
 
         throw new Exception\RuntimeException('Failed to lock file.', $this->path);
     }
@@ -232,13 +115,14 @@ class File
     {
         $desired_line = null;
 
-        $file = $this->createFileObject();
+        $this->rewind();
+
         try {
             for ($i = 0; $i < $line_number; $i++) {
-                $file->fgets();
+                $this->fgets();
             }
 
-            $desired_line = $file->fgets();
+            $desired_line = $this->fgets();
         } catch (\Exception $e) {
             return null;
         }
@@ -307,11 +191,12 @@ class File
     {
         $desired_line = null;
 
-        $file = $this->createFileObject();
-        for ($i = 0; !$file->eof(); $i++) {
-            $line = $file->fgets();
+        $random = new Random();
 
-            if (Random::getInstance()->getDigit(0, $i) < 1) {
+        for ($i = 0; !$this->eof(); $i++) {
+            $line = $this->fgets();
+
+            if ($random->generateNumber(0, $i) < 1) {
                 $desired_line = $line;
             }
         }
@@ -327,8 +212,8 @@ class File
      */
     public function makeWritableForAll()
     {
-        if (!@chmod($this->path, 0777)) {
-            throw new Exception\RuntimeException('Failed to change permissions.', $this->path);
+        if (!@chmod($this->getRealPath(), 0777)) {
+            throw new Exception\RuntimeException('Failed to change permissions.', $this->getRealPath());
         }
     }
 
@@ -352,37 +237,22 @@ class File
 
         $file_destination_path = $directory_destination_path . '/';
         if ($filename == '') {
-            $file_destination_path .= pathinfo($this->path, PATHINFO_BASENAME);
+            $file_destination_path .= $this->getBasename();
         } else {
-            $file_destination_path .= $filename . '.' . pathinfo($this->path, PATHINFO_EXTENSION);
+            $file_destination_path .= $filename . '.' . $this->getExtension();
         }
 
         if (!file_exists($file_destination_path)) {
-            if (!@copy($this->path, $file_destination_path)) {
+            if (!@copy($this->getRealPath(), $file_destination_path)) {
                 throw new Exception\RuntimeException(
                     'Failed to copy the file to ' . $file_destination_path . '.',
-                    $this->path
+                     $this->getRealPath()
                 );
             }
 
-            if (!@chmod($this->path, $mode)) {
-                throw new Exception\RuntimeException('Failed to change permissions.', $this->path);
+            if (!@chmod($this->getRealPath(), $mode)) {
+                throw new Exception\RuntimeException('Failed to change permissions.', $this->getRealPath());
             }
         }
-    }
-
-    /**
-     * Создаёт объект SplFileObject для текущего файла с
-     * указанным типом доступа.
-     *
-     * @param string $open_mode
-     * @return SplFileObject
-     */
-    public function createFileObject($open_mode = 'r')
-    {
-        $file_object = new \SplFileObject($this->path, $open_mode);
-        $file_object->setFlags(\SplFileObject::DROP_NEW_LINE);
-
-        return $file_object;
     }
 }

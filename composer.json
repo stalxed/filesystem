@@ -12,22 +12,16 @@
     ],
 	"require": {
 	    "php": ">=5.3.0",
-		"stalxed/system": "dev-master"
+		"stalxed/system": "0.1.*"
 	},
     "require-dev": {
-        "mikey179/vfsStream": "v1.1.0"
+        "mikey179/vfsStream": "1.1.*",
+        "symfony/class-loader": "2.1.*"
     },
 	"autoload": {
 		"psr-0": {
             "Stalxed\\FileSystem\\": "library/",
             "StalxedTest\\FileSystem\\": "tests/unit/"
 		}
-	},
-	"repositories": [
-        {
-            "type": "vcs",
-            "url": "git@bitbucket.org:stalxed/system.git"
-        }
-    ],
-    "minimum-stability": "dev"
+	}
 }
