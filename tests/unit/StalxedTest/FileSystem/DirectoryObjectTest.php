@@ -1,238 +1,88 @@
 <?php
+namespace StalxedTest\FileSystem;
 
-require_once 'library\Stalxed\FileSystem\DirectoryObject.php';
+use org\bovigo\vfs\vfsStream;
+use Stalxed\FileSystem\DirectoryObject;
 
-require_once 'PHPUnit\Framework\TestCase.php';
-
-/**
- * DirectoryObject test case.
- */
-class DirectoryObjectTest extends PHPUnit_Framework_TestCase
+class DirectoryObjectTest extends \PHPUnit_Framework_TestCase
 {
-    private $test_fs_helper;
-
     protected function setUp()
     {
         parent::setUp();
 
-        $this->test_fs_helper = new TestFSHelper();
-        $this->test_fs_helper->setUp();
+        $structure = array(
+            'directory containing files' => array(
+                'some1.file'  => 'some text 1',
+                'some2.file'  => 'some text 2',
+                'some3.file'  => 'some text 3',
+            ),
+            'directory containing directories' => array(
+                'directory 1' => array(),
+                'directory 2' => array(),
+                'directory 3' => array()
+            ),
+            'directory containing directories and files' => array(
+                'directory 1' => array(),
+                'directory 2' => array(),
+                'directory 3' => array(),
+                'some1.file'  => 'some text 1',
+                'some2.file'  => 'some text 2',
+                'some3.file'  => 'some text 3',
+            ),
+            'empty directory' => array()
+        );
+
+        $this->root = vfsStream::setup('root', null, $structure);
     }
 
-    protected function tearDown()
+    public function testIsEmpty_DirectoryContainsFiles()
     {
-        $this->test_fs_helper->tearDown();
-        $this->test_fs_helper = NULL;
+        $do = new DirectoryObject(vfsStream::url('root/directory containing files'));
 
-        parent::tearDown();
+        $this->assertFalse($do->isEmpty());
     }
 
-    public function testIsExists_DirectoryExists()
+    public function testIsEmpty_DirectoryContainsDirectories()
     {
-        $this->test_fs_helper->createDirectory('test');
+        $do = new DirectoryObject(vfsStream::url('root/directory containing directories'));
 
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
-
-        $this->assertTrue($directory->isExists());
+        $this->assertFalse($do->isEmpty());
     }
 
-    public function testIsExists_DirectoryNotExist()
+    public function testIsEmpty_DirectoryContainsDirectoriesAndFiles()
     {
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
+        $do = new DirectoryObject(vfsStream::url('root/directory containing directories and files'));
 
-        $this->assertFalse($directory->isExists());
-    }
-
-    public function testIsExists_SetFilePath()
-    {
-        $this->test_fs_helper->createFile('test');
-
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
-
-        $this->assertFalse($directory->isExists());
-    }
-
-    public function testIsReadable_DirectoryExistsAndReadable()
-    {
-        $this->test_fs_helper->createDirectory('test');
-
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
-
-        $this->assertTrue($directory->isReadable());
-    }
-
-    public function testIsReadable_DirectoryExistsAndNotReadable()
-    {
-        $this->markTestSkipped('Test not implemented, because for the development use windows.');
-    }
-
-    public function testIsReadable_DirectoryNotExist()
-    {
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
-
-        $this->assertFalse($directory->isReadable());
-    }
-
-    public function testIsReadable_SetFilePath()
-    {
-        $this->test_fs_helper->createFile('test');
-
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
-
-        $this->assertFalse($directory->isReadable());
-    }
-
-    public function testIsWritable_DirectoryExistsAndWritable()
-    {
-        $this->test_fs_helper->createDirectory('test');
-
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
-
-        $this->assertTrue($directory->isWritable());
-    }
-
-    public function testIsWritable_DirectoryExistsAndNotWritable()
-    {
-        $this->markTestSkipped('Test not implemented, because for the development use windows.');
-    }
-
-    public function testIsWritable_DirectoryNotExist()
-    {
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
-
-        $this->assertFalse($directory->isWritable());
-    }
-
-    public function testIsWritable_SetFilePath()
-    {
-        $this->test_fs_helper->createFile('test');
-
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
-
-        $this->assertFalse($directory->isWritable());
+        $this->assertFalse($do->isEmpty());
     }
 
     public function testIsEmpty_EmptyDirectory()
     {
-        $directory = new System_Directory($this->test_fs_helper->getPathStore());
+        $do = new DirectoryObject(vfsStream::url('root/empty directory'));
 
-        $this->assertTrue($directory->isEmpty());
-    }
-
-    public function testIsEmpty_DirectoryContainsFile()
-    {
-        $this->test_fs_helper->createFile('test.file');
-
-        $directory = new System_Directory($this->test_fs_helper->getPathStore());
-
-        $this->assertFalse($directory->isEmpty());
-    }
-
-    public function testIsEmpty_DirectoryContainsDirectory()
-    {
-        $this->test_fs_helper->createDirectory('test');
-
-        $directory = new System_Directory($this->test_fs_helper->getPathStore());
-
-        $this->assertFalse($directory->isEmpty());
-    }
-
-    public function testIsEmpty_DirectoryContainsSubDirectoriesAndFiles()
-    {
-        $this->test_fs_helper->createDirectory('test1');
-        $this->test_fs_helper->createDirectory('test1/test2');
-        $this->test_fs_helper->createFile('test1/test2/test3.file');
-
-        $directory = new System_Directory($this->test_fs_helper->getPathStore());
-
-        $this->assertFalse($directory->isEmpty());
+        $this->assertTrue($do->isEmpty());
     }
 
     public function testGetSize()
     {
-        $this->test_fs_helper->filePutContents('test1.file', '1');
-        $this->test_fs_helper->filePutContents('test2.file', '2');
-        $this->test_fs_helper->createDirectory('test');
-        $this->test_fs_helper->filePutContents('test/test3.file', '3');
+        $do = new DirectoryObject(vfsStream::url('root/directory containing directories and files'));
 
-        $directory = new System_Directory($this->test_fs_helper->getPathStore());
-
-        $this->assertSame(3, $directory->getSize());
+        $this->assertSame(33, $do->getSize());
     }
 
     public function testGetSize_EmptyDirectory()
     {
-        $directory = new System_Directory($this->test_fs_helper->getPathStore());
+        $do = new DirectoryObject(vfsStream::url('root/empty directory'));
 
-        $this->assertSame(0, $directory->getSize());
-    }
-
-    public function testCreate_OneLevel()
-    {
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
-        $directory->create();
-
-        $this->test_fs_helper->assertDirectoryExists('test');
-    }
-
-    public function testCreate_FiveLevels()
-    {
-        $directory = new System_Directory($this->test_fs_helper->getPath('test1/test2/test3/test4/test5'));
-        $directory->create();
-
-        $this->test_fs_helper->assertDirectoryExists('test1/test2/test3/test4/test5');
-    }
-
-    public function testCreate_DirectoryNameContainsIncorrectSymbols()
-    {
-        $path = $this->test_fs_helper->getPath('*incorrect_name*');
-
-        $this->setExpectedException('System_FSException', 'Failed to create directory. Path: ' . $path . '.');
-
-        $directory = new System_Directory($path);
-        $directory->create();
-    }
-
-    public function testCreate_IncorrectMode()
-    {
-        $this->markTestSkipped('Test not implemented, because for the development use windows.');
-    }
-
-    public function testDelete_EmpyDirectory()
-    {
-        $this->test_fs_helper->createDirectory('test');
-
-        $directory = new System_Directory($this->test_fs_helper->getPath('test'));
-        $directory->delete();
-
-        $this->test_fs_helper->assertDirectoryNotExists('test');
-    }
-
-    public function testDelete_FullDirectory()
-    {
-        $this->test_fs_helper->createDirectory('test1');
-        $this->test_fs_helper->createDirectory('test1/test2');
-
-        $path = $this->test_fs_helper->getPath('test1');
-
-        $this->setExpectedException('System_FSException', 'Failed to delete directory. Path: ' . $path . '.');
-
-        $directory = new System_Directory($path);
-        $directory->delete();
+        $this->assertSame(0, $do->getSize());
     }
 
     public function testClear()
     {
-        $this->test_fs_helper->createFile('test.file');
-        $this->test_fs_helper->createDirectory('test');
-        $this->test_fs_helper->createFile('test/test.file');
+         $do = new DirectoryObject(vfsStream::url('root'));
+         $do->clear();
 
-        $directory = new System_Directory($this->test_fs_helper->getPathStore());
-        $directory->clear();
-
-        $this->test_fs_helper->assertFileNotExists('test.file');
-        $this->test_fs_helper->assertDirectoryNotExists('test');
-        $this->test_fs_helper->assertFileNotExists('test/test.file');
+         $this->assertFalse($this->root->hasChildren());
     }
 
     public function testClear_NoPermissionsToDeleteDirectory()
@@ -257,58 +107,40 @@ class DirectoryObjectTest extends PHPUnit_Framework_TestCase
 
     public function testCopyTo()
     {
-        $this->test_fs_helper->createDirectory('from');
-        $this->test_fs_helper->createFile('from/test1.file');
-        $this->test_fs_helper->createFile('from/test2.file');
-        $this->test_fs_helper->createDirectory('from/test');
-        $this->test_fs_helper->createFile('from/test/test.file');
-        $this->test_fs_helper->createDirectory('to');
+        $directory = new DirectoryObject(vfsStream::url('root/directory containing directories and files'));
+        $directory->copyTo(vfsStream::url('root/empty directory'));
 
-        $directory = new System_Directory($this->test_fs_helper->getPath('from'));
-        $directory->copyTo($this->test_fs_helper->getPath('to'));
-
-        $this->test_fs_helper->assertFileExists('to/test1.file');
-        $this->test_fs_helper->assertFileExists('to/test2.file');
-        $this->test_fs_helper->assertDirectoryExists('to/test');
-        $this->test_fs_helper->assertFileExists('to/test/test.file');
+        $directory = $this->root->getChild('empty directory');
+        $this->assertTrue($directory->hasChild('directory 1'));
+        $this->assertTrue($directory->hasChild('directory 2'));
+        $this->assertTrue($directory->hasChild('directory 3'));
+        $this->assertTrue($directory->hasChild('some1.file'));
+        $this->assertTrue($directory->hasChild('some2.file'));
+        $this->assertTrue($directory->hasChild('some3.file'));
     }
 
     public function testCopyTo_DirectoryDestinationNotExist()
     {
-        $this->test_fs_helper->createDirectory('from');
-        $this->test_fs_helper->createFile('from/test1.file');
-        $this->test_fs_helper->createFile('from/test2.file');
-        $this->test_fs_helper->createDirectory('from/test');
-        $this->test_fs_helper->createFile('from/test/test.file');
-
-        $path = $this->test_fs_helper->getPath('to');
-
         $this->setExpectedException('System_FSException', 'Directory destination is not exist. Path: ' . $path . '.');
 
-        $directory = new System_Directory($this->test_fs_helper->getPath('from'));
-        $directory->copyTo($path);
+        $directory = new DirectoryObject(vfsStream::url('root/directory containing directories and files'));
+        $directory->copyTo(vfsStream::url('root/empty directory111111'));
     }
 
     public function testCopyTo_DirectoriesAndFilesAlreadyExists()
     {
-        $this->test_fs_helper->createDirectory('from');
-        $this->test_fs_helper->filePutContents('from/test1.file', '12345');
-        $this->test_fs_helper->filePutContents('from/test2.file', '678910');
-        $this->test_fs_helper->createDirectory('from/test');
-        $this->test_fs_helper->filePutContents('from/test/test.file', '1112131415');
-        $this->test_fs_helper->createDirectory('to');
-        $this->test_fs_helper->filePutContents('to/test1.file', 'abcde');
-        $this->test_fs_helper->filePutContents('to/test2.file', 'fghij');
-        $this->test_fs_helper->createDirectory('to/test');
-        $this->test_fs_helper->filePutContents('to/test/test.file', 'fghij');
+        $directory = new DirectoryObject(vfsStream::url('root/directory containing directories and files'));
+        $directory->copyTo(vfsStream::url('root/empty directory'));
 
-        $directory = new System_Directory($this->test_fs_helper->getPath('from'));
-        $directory->copyTo($this->test_fs_helper->getPath('to'));
-
-        $this->test_fs_helper->assertFileExistsAndContains('to/test1.file', 'abcde');
-        $this->test_fs_helper->assertFileExistsAndContains('to/test2.file', 'fghij');
-        $this->test_fs_helper->assertDirectoryExists('to/test');
-        $this->test_fs_helper->assertFileExistsAndContains('to/test/test.file', 'fghij');
+        $emptyDirectory = $this->root->getChild('empty directory');
+        $this->assertTrue($emptyDirectory->hasChild('directory containing directories and files'));
+        $directory = $emptyDirectory->getChild('directory containing directories and files');
+        $this->assertTrue($directory->hasChild('directory 1'));
+        $this->assertTrue($directory->hasChild('directory 2'));
+        $this->assertTrue($directory->hasChild('directory 3'));
+        $this->assertTrue($directory->hasChild('some1.file'));
+        $this->assertTrue($directory->hasChild('some2.file'));
+        $this->assertTrue($directory->hasChild('some3.file'));
     }
 
     public function testCopyTo_NoPermissionsToCreateDirectory()
@@ -333,19 +165,11 @@ class DirectoryObjectTest extends PHPUnit_Framework_TestCase
 
     public function testCreateDirectoryIterator()
     {
-        $directory = new System_Directory($this->test_fs_helper->getPathStore());
+        $directory = new DirectoryObject(vfsStream::url('root/directory containing directories and files'));
 
-        $expected = new DirectoryIterator($this->test_fs_helper->getPathStore());
-
+        $expected = new \DirectoryIterator(vfsStream::url('root/directory containing directories and files'));
+        $expected->setFileClass('Stalxed\FileSystem\FileObject');
+        $expected->setInfoClass('Stalxed\FileSystem\FileInfo');
         $this->assertEquals($expected, $directory->createDirectoryIterator());
-    }
-
-    public function testCreateRecursiveDirectoryIterator()
-    {
-        $directory = new System_Directory($this->test_fs_helper->getPathStore());
-
-        $expected = new RecursiveDirectoryIterator($this->test_fs_helper->getPathStore());
-
-        $this->assertEquals($expected, $directory->createRecursiveDirectoryIterator());
     }
 }

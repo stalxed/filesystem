@@ -12,7 +12,43 @@ class DirectoryObject extends \SplFileInfo
     }
 
     /**
-     * Проверяет, является ли директория пустой.
+     * (non-PHPdoc)
+     *
+     * @see SplFileInfo::getRealPath()
+     */
+    public function getRealPath()
+    {
+        if (in_array('vfs', stream_get_wrappers())) {
+            return $this->getPathname();
+        }
+
+        return parent::getRealPath();
+    }
+
+    /**
+     * Возвращает размер директории.
+     *
+     * @return integer
+     */
+    public function getSize()
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            $this->createRecursiveDirectoryIterator(),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        $size = 0;
+        foreach ($iterator as $item) {
+            if ($item->isFile()) {
+                $size += $item->getSize();
+            }
+        }
+
+        return $size;
+    }
+
+    /**
+     * Checks whether the directory is empty.
      *
      * @return boolean
      */
@@ -34,29 +70,7 @@ class DirectoryObject extends \SplFileInfo
     }
 
     /**
-     * Возвращает размер директории.
-     *
-     * @return integer
-     */
-    public function getSize()
-    {
-        $iterator = new \RecursiveIteratorIterator(
-                $this->createRecursiveDirectoryIterator(),
-                \RecursiveIteratorIterator::SELF_FIRST
-        );
-
-        $size = 0;
-        foreach ($iterator as $item) {
-            if ($item->isFile()) {
-                $size += $item->getSize();
-            }
-        }
-
-        return $size;
-    }
-
-    /**
-     * Удаляет все вложенные элементы.
+     * Recursively delete subdirectories and files.
      *
      * @throws System_FSException
      */
@@ -137,7 +151,7 @@ class DirectoryObject extends \SplFileInfo
      * @param integer $filemode
      * @throws System_FSException
      */
-    private function coping(RecursiveDirectoryIterator $iterator, $directory_destination_path, $dirmode, $filemode)
+    private function coping(\RecursiveDirectoryIterator $iterator, $directory_destination_path, $dirmode, $filemode)
     {
         foreach ($iterator as $item) {
             $destination_path = $directory_destination_path . '/' . $iterator->getFilename();
@@ -210,12 +224,12 @@ class DirectoryObject extends \SplFileInfo
      *
      * @return RecursiveDirectoryIterator
      */
-    public function createRecursiveDirectoryIterator($flags)
+    public function createRecursiveDirectoryIterator($flags = null)
     {
         if (isset($flags)) {
-            $iterator = new \RecursiveDirectoryIterator($this->directory_path, $flags);
+            $iterator = new \RecursiveDirectoryIterator($this->getRealPath(), $flags);
         } else {
-            $iterator = new \RecursiveDirectoryIterator($this->directory_path);
+            $iterator = new \RecursiveDirectoryIterator($this->getRealPath());
         }
         $iterator->setFileClass('Stalxed\FileSystem\FileObject');
         $iterator->setInfoClass('Stalxed\FileSystem\FileInfo');
