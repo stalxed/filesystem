@@ -11,14 +11,9 @@ class DirectoryObject extends \SplFileInfo
         parent::__construct($filename);
     }
 
-    /**
-     * (non-PHPdoc)
-     *
-     * @see SplFileInfo::getRealPath()
-     */
     public function getRealPath()
     {
-        if (in_array('vfs', stream_get_wrappers())) {
+        if (parse_url($this->getPathname(), PHP_URL_SCHEME) == 'vfs') {
             return $this->getPathname();
         }
 

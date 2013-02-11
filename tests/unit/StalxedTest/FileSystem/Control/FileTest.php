@@ -25,6 +25,20 @@ class FileTest extends \PHPUnit_Framework_TestCase
         $this->root = vfsStream::setup('root', null, $structure);
     }
 
+    public function testGetRealPath_FileInFileSystem()
+    {
+        $directory = new File(__DIR__ . '/./././' . basename(__FILE__));
+
+        $this->assertEquals(__FILE__, $directory->getRealPath());
+    }
+
+    public function testGetRealPath_FileInVfs()
+    {
+        $directory = new File(vfsStream::url('root/some.file'));
+
+        $this->assertEquals($directory->getPathname(), $directory->getRealPath());
+    }
+
     /**
      * @requires PHP 5.4
      *

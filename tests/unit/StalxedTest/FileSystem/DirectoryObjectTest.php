@@ -35,6 +35,20 @@ class DirectoryObjectTest extends \PHPUnit_Framework_TestCase
         $this->root = vfsStream::setup('root', null, $structure);
     }
 
+    public function testGetRealPath_DirectoryInFileSystem()
+    {
+        $directory = new DirectoryObject(__DIR__ . '/././.');
+
+        $this->assertEquals(__DIR__, $directory->getRealPath());
+    }
+
+    public function testGetRealPath_DirectoryInVfs()
+    {
+        $directory = new DirectoryObject(vfsStream::url('root/some_directory'));
+
+        $this->assertEquals($directory->getPathname(), $directory->getRealPath());
+    }
+
     public function testIsEmpty_DirectoryContainsFiles()
     {
         $do = new DirectoryObject(vfsStream::url('root/directory containing files'));

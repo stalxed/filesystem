@@ -28,6 +28,20 @@ class FileObjectTest extends \PHPUnit_Framework_TestCase
         $this->root = vfsStream::setup('root', null, $structure);
     }
 
+    public function testGetRealPath_FileInFileSystem()
+    {
+        $directory = new FileObject(__DIR__ . '/./././' . basename(__FILE__));
+
+        $this->assertEquals(__FILE__, $directory->getRealPath());
+    }
+
+    public function testGetRealPath_FileInVfs()
+    {
+        $directory = new FileObject(vfsStream::url('root/some.file'));
+
+        $this->assertEquals($directory->getPathname(), $directory->getRealPath());
+    }
+
     public function testIsEmpty_FileNotEmpty()
     {
         $file = new FileObject(vfsStream::url('root/some.file'));

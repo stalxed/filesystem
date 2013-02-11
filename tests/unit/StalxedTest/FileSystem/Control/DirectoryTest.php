@@ -25,6 +25,20 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
         $this->root = vfsStream::setup('root', null, $structure);
     }
 
+    public function testGetRealPath_DirectoryInFileSystem()
+    {
+        $directory = new Directory(__DIR__ . '/././.');
+
+        $this->assertEquals(__DIR__, $directory->getRealPath());
+    }
+
+    public function testGetRealPath_DirectoryInVfs()
+    {
+        $directory = new Directory(vfsStream::url('root/some_directory'));
+
+        $this->assertEquals($directory->getPathname(), $directory->getRealPath());
+    }
+
     public function testCreate_OneLevel()
     {
         $directory = new Directory(vfsStream::url('root/nonexistent_directory'));

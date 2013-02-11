@@ -13,14 +13,9 @@ class FileObject extends \SplFileObject
         parent::__construct($filename, $openMode, $useIncludePath);
     }
 
-    /**
-     * (non-PHPdoc)
-     *
-     * @see SplFileObject::getRealPath()
-     */
     public function getRealPath()
     {
-        if (in_array('vfs', stream_get_wrappers())) {
+        if (parse_url($this->getPathname(), PHP_URL_SCHEME) == 'vfs') {
             return $this->getPathname();
         }
 
