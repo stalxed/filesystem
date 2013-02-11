@@ -143,7 +143,7 @@ class FileObject extends \SplFileObject
     {
         $desired_line = null;
 
-        foreach ($this->createFileObject() as $line) {
+        foreach ($this as $line) {
             $temp_parts = explode($delimiter, $line);
             if (isset($temp_parts[$part_number]) && $temp_parts[$part_number] == $desired_value) {
                 $desired_line = $line;
@@ -168,7 +168,7 @@ class FileObject extends \SplFileObject
     {
         $desired_line = null;
 
-        foreach ($this->createFileObject() as $line) {
+        foreach ($this as $line) {
             $position = strpos($line, $desired_value);
             if ($position !== false) {
                 if ($desired_start_position === null || $position == $desired_start_position) {
@@ -232,7 +232,7 @@ class FileObject extends \SplFileObject
     public function copyTo($directory_destination_path, $filename = '', $mode = 0644)
     {
         if (!is_dir($directory_destination_path)) {
-            throw new Exception\RuntimeException('Destination directory is not exist.', $directory_destination_path);
+            throw new Exception\RuntimeException();
         }
 
         $file_destination_path = $directory_destination_path . '/';
@@ -244,14 +244,11 @@ class FileObject extends \SplFileObject
 
         if (!file_exists($file_destination_path)) {
             if (!@copy($this->getRealPath(), $file_destination_path)) {
-                throw new Exception\RuntimeException(
-                    'Failed to copy the file to ' . $file_destination_path . '.',
-                     $this->getRealPath()
-                );
+                throw new Exception\RuntimeException();
             }
 
             if (!@chmod($this->getRealPath(), $mode)) {
-                throw new Exception\RuntimeException('Failed to change permissions.', $this->getRealPath());
+                throw new Exception\RuntimeException();
             }
         }
     }

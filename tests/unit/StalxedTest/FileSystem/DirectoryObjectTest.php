@@ -119,50 +119,6 @@ class DirectoryObjectTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($directory->hasChild('some3.file'));
     }
 
-    public function testCopyTo_DirectoryDestinationNotExist()
-    {
-        $this->setExpectedException('System_FSException', 'Directory destination is not exist. Path: ' . $path . '.');
-
-        $directory = new DirectoryObject(vfsStream::url('root/directory containing directories and files'));
-        $directory->copyTo(vfsStream::url('root/empty directory111111'));
-    }
-
-    public function testCopyTo_DirectoriesAndFilesAlreadyExists()
-    {
-        $directory = new DirectoryObject(vfsStream::url('root/directory containing directories and files'));
-        $directory->copyTo(vfsStream::url('root/empty directory'));
-
-        $emptyDirectory = $this->root->getChild('empty directory');
-        $this->assertTrue($emptyDirectory->hasChild('directory containing directories and files'));
-        $directory = $emptyDirectory->getChild('directory containing directories and files');
-        $this->assertTrue($directory->hasChild('directory 1'));
-        $this->assertTrue($directory->hasChild('directory 2'));
-        $this->assertTrue($directory->hasChild('directory 3'));
-        $this->assertTrue($directory->hasChild('some1.file'));
-        $this->assertTrue($directory->hasChild('some2.file'));
-        $this->assertTrue($directory->hasChild('some3.file'));
-    }
-
-    public function testCopyTo_NoPermissionsToCreateDirectory()
-    {
-        $this->markTestSkipped('Test not implemented, because for the development use windows.');
-    }
-
-    public function testCopyTo_NoPermissionsToCopyingFile()
-    {
-        $this->markTestSkipped('Test not implemented, because for the development use windows.');
-    }
-
-    public function testCopyTo_IncorrectDirmode()
-    {
-        $this->markTestSkipped('Test not implemented, because for the development use windows.');
-    }
-
-    public function testCopyTo_IncorrectFilemode()
-    {
-        $this->markTestSkipped('Test not implemented, because for the development use windows.');
-    }
-
     public function testCreateDirectoryIterator()
     {
         $directory = new DirectoryObject(vfsStream::url('root/directory containing directories and files'));
