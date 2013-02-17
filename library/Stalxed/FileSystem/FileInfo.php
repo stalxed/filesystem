@@ -3,6 +3,9 @@ namespace Stalxed\FileSystem;
 
 class FileInfo extends \SplFileInfo
 {
+    const TYPE_DIRECTORY = 1;
+    const TYPE_FILE = 2;
+
     public function __construct($filename)
     {
         $this->setFileClass('Stalxed\FileSystem\FileObject');
@@ -49,12 +52,18 @@ class FileInfo extends \SplFileInfo
         return new DirectoryObject($this->getRealPath());
     }
 
-    public function control()
+    public function control($type = null)
     {
         if ($this->isDir()) {
             return new Control\Directory($this);
         }
         if ($this->isFile()) {
+            return new Control\File($this);
+        }
+        if ($type == self::TYPE_DIRECTORY) {
+            return new Control\Directory($this);
+        }
+        if ($type == self::TYPE_FILE){
             return new Control\File($this);
         }
 
