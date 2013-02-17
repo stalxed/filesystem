@@ -53,6 +53,13 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($fileinfo->getPathname(), $fileinfo->getRealPath());
     }
 
+    public function testGetSize_EmptyDirectory()
+    {
+        $fileinfo = new FileInfo(vfsStream::url('root/empty_directory'));
+
+        $this->assertEquals(0, $fileinfo->getSize());
+    }
+
     public function testOpenDirectory_SomeDirectory()
     {
         $fileinfo = new FileInfo(vfsStream::url('root/some_directory'));
