@@ -15,12 +15,13 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
         parent::setUp();
 
         $structure = array(
-            'some_directory' => array(
+            'some_directory'  => array(
                 'some1.file' => 'some text one',
                 'some2.file' => 'some text two',
                 'some3.file' => 'some text three'
             ),
-            'some.file'      => 'some text'
+            'empty_directory' => array(),
+            'some.file'       => 'some text'
         );
         $this->root = vfsStream::setup('root', null, $structure);
     }
