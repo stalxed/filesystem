@@ -15,14 +15,12 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
         parent::setUp();
 
         $structure = array(
-            'some_directory'  => array(
-                'some1.file' => 'some text one',
-                'some2.file' => 'some text two',
-                'some3.file' => 'some text three'
+            'some_directory' => array(
+                'some1.file' => 'some text one',  // 13 bits
+                'some2.file' => 'some text two',  // 13 bits
+                'some3.file' => 'some text three' // 15 bits
             ),
-            'empty_directory' => array(),
-            'some.file'       => 'some text',
-            'empty.file'       => ''
+            'some.file'      => 'some text'       // 9 bits
         );
         $this->root = vfsStream::setup('root', null, $structure);
     }
@@ -55,11 +53,18 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($fileinfo->getPathname(), $fileinfo->getRealPath());
     }
 
-    public function testGetSize_EmptyDirectory()
+    public function testGetSize_SomeDirectory()
     {
-        $fileinfo = new FileInfo(vfsStream::url('root/empty_directory'));
+        $fileinfo = new FileInfo(vfsStream::url('root/some_directory'));
 
-        $this->assertEquals(0, $fileinfo->getSize());
+        $this->assertEquals(41, $fileinfo->getSize());
+    }
+
+    public function testGetSize_SomeFile()
+    {
+        $fileinfo = new FileInfo(vfsStream::url('root/some.file'));
+
+        $this->assertEquals(9, $fileinfo->getSize());
     }
 
     public function testOpenDirectory_SomeDirectory()
