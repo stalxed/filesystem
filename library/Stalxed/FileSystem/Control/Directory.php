@@ -1,48 +1,46 @@
 <?php
 namespace Stalxed\FileSystem\Control;
 
+use Stalxed\FileSystem\FileInfo;
+
 class Directory extends \SplFileInfo implements ControlInterface
 {
-    public function getRealPath()
-    {
-        if (parse_url($this->getPathname(), PHP_URL_SCHEME) == 'vfs') {
-            return $this->getPathname();
-        }
+    private $fileinfo;
 
-        return parent::getRealPath();
+    public function __construct(FileInfo $fileinfo)
+    {
+        $this->fileinfo = $fileinfo;
     }
 
-    /**
-     * Создаёт директорию.
-     * Создаёт вложенные папки, указанные в пути к директории,
-     * если они не существуют.
-     * По умолчанию устанавливает права доступа 0755.
-     *
-     * @param integer $mode
-     * @throws System_FSException
-     */
     public function create($mode = 0755)
     {
-        if (! @mkdir($this->getRealPath(), $mode, true)) {
+        if ($this->fileinfo->isDir() || $this->fileinfo->isFile()) {
+            throw new Exception\LogicException();
+        }
+
+        if (! @mkdir($this->fileinfo->getRealPath(), $mode, true)) {
             throw new Exception\PermissionDeniedException();
         }
     }
 
-    /**
-     * Удаляет директорию.
-     *
-     * @throws System_FSException
-     */
     public function delete()
     {
-        if ($this->isFile()) {
-            throw new Exception\LogicException();
-        }
-        if (! $this->isDir()) {
+        if (! $this->fileinfo->isDir()) {
             throw new Exception\DirectoryNotFoundException();
         }
 
-        if (! @rmdir($this->getRealPath())) {
+        if (! @rmdir($this->fileinfo->getRealPath())) {
+            throw new Exception\PermissionDeniedException();
+        }
+    }
+
+    public function chmod($mode)
+    {
+        if (! $this->fileinfo->isDir()) {
+            throw new Exception\DirectoryNotFoundException();
+        }
+
+        if (! @chmod($this->fileinfo->getRealPath(), $mode)) {
             throw new Exception\PermissionDeniedException();
         }
     }

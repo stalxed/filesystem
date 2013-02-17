@@ -61,19 +61,19 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $directory->openDirectory());
     }
 
-    public function testControlDirectory_SomeDirectory()
+    public function testControl_SomeDirectory()
     {
         $directory = new FileInfo(vfsStream::url('root/some_directory'));
 
-        $expected = new Control\Directory($directory->getRealPath());
-        $this->assertEquals($expected, $directory->controlDirectory());
+        $expected = new Control\Directory($directory);
+        $this->assertEquals($expected, $directory->control());
     }
 
-    public function testControlFile_SomeFile()
+    public function testControl_SomeFile()
     {
         $file = new FileInfo(vfsStream::url('root/some.file'));
 
-        $expected = new Control\File($file->getRealPath());
-        $this->assertEquals($expected, $file->conrolFile());
+        $expected = new Control\File($file);
+        $this->assertEquals($expected, $file->control());
     }
 }

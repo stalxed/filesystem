@@ -175,15 +175,10 @@ class FileObjectTest extends \PHPUnit_Framework_TestCase
         $this->assertNull($file->findRandomLine());
     }
 
-    public function testToWritableForAll()
-    {
-        $this->markTestSkipped('Test not implemented, because for the development use windows.');
-    }
-
     public function testCopyTo()
     {
         $file = new FileObject(vfsStream::url('root/some.file'));
-        $file->copyTo(vfsStream::url('root/directory'));
+        $file->copyTo(vfsStream::url('root/directory/some.file'));
 
         $this->assertTrue($this->root->hasChild('directory'));
         $this->assertTrue($this->root->getChild('directory')->hasChild('some.file'));
@@ -192,36 +187,4 @@ class FileObjectTest extends \PHPUnit_Framework_TestCase
             $this->root->getChild('directory')->getChild('some.file')->getContent()
         );
     }
-
-    public function testCopyTo_FileNameSet()
-    {
-        $file = new FileObject(vfsStream::url('root/some.file'));
-        $file->copyTo(vfsStream::url('root/directory'), 'new');
-
-        $this->assertTrue($this->root->hasChild('directory'));
-        $this->assertTrue($this->root->getChild('directory')->hasChild('new.file'));
-        $this->assertEquals(
-            'some text',
-            $this->root->getChild('directory')->getChild('new.file')->getContent()
-        );
-    }
-
-    public function testCopyTo_DirectoryDestinationNotExist()
-    {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\RuntimeException');
-
-        $file = new FileObject(vfsStream::url('root/some.file'));
-        $file->copyTo(vfsStream::url('root/directory1'));
-    }
-
-    public function testCopyTo_FileAlreadyExists()
-    {
-
-    }
-
-    public function testCopyTo_IncorrectMode()
-    {
-        $this->markTestSkipped('Test not implemented, because for the development use windows.');
-    }
-
 }

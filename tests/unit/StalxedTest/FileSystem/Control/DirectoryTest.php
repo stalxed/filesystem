@@ -3,6 +3,7 @@ namespace StalxedTest\FileSystem\Control;
 
 use org\bovigo\vfs\vfsStream;
 use Stalxed\FileSystem\Control\Directory;
+use Stalxed\FileSystem\FileInfo;
 
 class DirectoryTest extends \PHPUnit_Framework_TestCase
 {
@@ -19,29 +20,14 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
                 'some3.file' => 'some text three'
             ),
             'empty_directory'  => array(),
-            'some.file'        => 'some text',
-            'empty.file'       => ''
+            'some.file'        => 'some text'
         );
         $this->root = vfsStream::setup('root', null, $structure);
     }
 
-    public function testGetRealPath_DirectoryInFileSystem()
-    {
-        $directory = new Directory(__DIR__ . '/././.');
-
-        $this->assertEquals(__DIR__, $directory->getRealPath());
-    }
-
-    public function testGetRealPath_DirectoryInVfs()
-    {
-        $directory = new Directory(vfsStream::url('root/some_directory'));
-
-        $this->assertEquals($directory->getPathname(), $directory->getRealPath());
-    }
-
     public function testCreate_OneLevel()
     {
-        $directory = new Directory(vfsStream::url('root/nonexistent_directory'));
+        $directory = new Directory(new FileInfo(vfsStream::url('root/nonexistent_directory')));
         $directory->create();
 
         $this->assertTrue($this->root->hasChild('nonexistent_directory'));
@@ -50,7 +36,7 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
 
     public function testCreate_ThreeLevels()
     {
-        $directory = new Directory(vfsStream::url('root/test1/test2/test3'));
+        $directory = new Directory(new FileInfo(vfsStream::url('root/test1/test2/test3')));
         $directory->create();
 
         $this->assertTrue($this->root->hasChild('test1'));
@@ -61,7 +47,7 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
 
     public function testCreate_ModeSet777()
     {
-        $directory = new Directory(vfsStream::url('root/nonexistent_directory'));
+        $directory = new Directory(new FileInfo(vfsStream::url('root/nonexistent_directory')));
         $directory->create(0777);
 
         $this->assertTrue($this->root->hasChild('nonexistent_directory'));
@@ -74,13 +60,21 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
 
         $this->root->chmod(0555);
 
-        $directory = new Directory(vfsStream::url('root/nonexistent directory'));
+        $directory = new Directory(new FileInfo(vfsStream::url('root/nonexistent_directory')));
+        $directory->create();
+    }
+
+    public function testCreate_SomeFile()
+    {
+        $this->setExpectedException('Stalxed\FileSystem\Exception\LogicException');
+
+        $directory = new Directory(new FileInfo(vfsStream::url('root/some.file')));
         $directory->create();
     }
 
     public function testDelete_EmptyDirectory()
     {
-        $file = new Directory(vfsStream::url('root/empty_directory'));
+        $file = new Directory(new FileInfo(vfsStream::url('root/empty_directory')));
         $file->delete();
 
         $this->assertFalse($this->root->hasChild('empty_directory'));
@@ -90,15 +84,15 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
     {
         $this->setExpectedException('Stalxed\FileSystem\Exception\DirectoryNotFoundException');
 
-        $file = new Directory(vfsStream::url('root/nonexistent_directory'));
+        $file = new Directory(new FileInfo(vfsStream::url('root/nonexistent_directory')));
         $file->delete();
     }
 
     public function testDelete_SomeFile()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\LogicException');
+        $this->setExpectedException('Stalxed\FileSystem\Exception\DirectoryNotFoundException');
 
-        $directory = new Directory(vfsStream::url('root/some.file'));
+        $directory = new Directory(new FileInfo(vfsStream::url('root/some.file')));
         $directory->delete();
     }
 
@@ -108,7 +102,15 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
 
         $this->root->chmod(0555);
 
-        $directory = new Directory(vfsStream::url('root/empty_directory'));
+        $directory = new Directory(new FileInfo(vfsStream::url('root/empty_directory')));
         $directory->delete();
+    }
+
+    public function testChmod_EmptyDirectory()
+    {
+        $directory = new Directory(new FileInfo(vfsStream::url('root/empty_directory/')));
+        $directory->chmod(0777);
+
+        $this->assertEquals(0777, $this->root->getChild('empty_directory')->getPermissions());
     }
 }

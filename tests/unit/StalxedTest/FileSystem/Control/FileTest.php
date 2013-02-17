@@ -3,6 +3,7 @@ namespace StalxedTest\FileSystem\Control;
 
 use org\bovigo\vfs\vfsStream;
 use Stalxed\FileSystem\Control\File;
+use Stalxed\FileSystem\FileInfo;
 
 class FileTest extends \PHPUnit_Framework_TestCase
 {
@@ -18,25 +19,9 @@ class FileTest extends \PHPUnit_Framework_TestCase
                 'some2.file' => 'some text two',
                 'some3.file' => 'some text three'
             ),
-            'empty_directory'  => array(),
-            'some.file'        => 'some text',
-            'empty.file'       => ''
+            'some.file'        => 'some text'
         );
         $this->root = vfsStream::setup('root', null, $structure);
-    }
-
-    public function testGetRealPath_FileInFileSystem()
-    {
-        $directory = new File(__DIR__ . '/./././' . basename(__FILE__));
-
-        $this->assertEquals(__FILE__, $directory->getRealPath());
-    }
-
-    public function testGetRealPath_FileInVfs()
-    {
-        $directory = new File(vfsStream::url('root/some.file'));
-
-        $this->assertEquals($directory->getPathname(), $directory->getRealPath());
     }
 
     /**
@@ -45,7 +30,9 @@ class FileTest extends \PHPUnit_Framework_TestCase
      */
     public function testCreate_NonexistentFile()
     {
-        $file = new File(vfsStream::url('root/nonexistent.file'));
+        $file = new File(
+            new FileInfo(vfsStream::url('root/nonexistent.file'))
+        );
         $file->create();
 
         $this->assertTrue($this->root->hasChild('nonexistent.file'));
@@ -58,7 +45,9 @@ class FileTest extends \PHPUnit_Framework_TestCase
      */
     public function testCreate_ModeSet777()
     {
-        $file = new File(vfsStream::url('root/nonexistent.file'));
+        $file = new File(
+            new FileInfo(vfsStream::url('root/nonexistent.file'))
+        );
         $file->create(0777);
 
         $this->assertTrue($this->root->hasChild('nonexistent.file'));
@@ -67,25 +56,22 @@ class FileTest extends \PHPUnit_Framework_TestCase
 
     public function testCreate_ParentDirectoryReadOnly()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Control\Exception\PermissionDeniedException');
-
-        $this->root->chmod(0555);
-
-        $file = new File(vfsStream::url('root/nonexistent.file'));
-        $file->create();
+        $this->markTestSkipped('Limitation of the current version of the file system.');
     }
 
     public function testCreate_ParentDirectoryNotExist()
     {
         $this->setExpectedException('Stalxed\FileSystem\Control\Exception\DirectoryNotFoundException');
 
-        $file = new File(vfsStream::url('root/nonexistent_directory/nonexistent.file'));
+        $file = new File(
+            new FileInfo(vfsStream::url('root/nonexistent_directory/nonexistent.file'))
+        );
         $file->create();
     }
 
     public function testDelete_SomeFile()
     {
-        $file = new File(vfsStream::url('root/some.file'));
+        $file = new File(new FileInfo(vfsStream::url('root/some.file')));
         $file->delete();
 
         $this->assertFalse($this->root->hasChild('some.file'));
@@ -95,15 +81,15 @@ class FileTest extends \PHPUnit_Framework_TestCase
     {
         $this->setExpectedException('Stalxed\FileSystem\Control\Exception\FileNotFoundException');
 
-        $file = new File(vfsStream::url('root/nonexistent.file'));
+        $file = new File(new FileInfo(vfsStream::url('root/nonexistent.file')));
         $file->delete();
     }
 
     public function testDelete_SomeDirectory()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Control\Exception\LogicException');
+        $this->setExpectedException('Stalxed\FileSystem\Control\Exception\FileNotFoundException');
 
-        $directory = new File(vfsStream::url('root/some_directory'));
+        $directory = new File(new FileInfo(vfsStream::url('root/some_directory')));
         $directory->delete();
     }
 
@@ -113,7 +99,12 @@ class FileTest extends \PHPUnit_Framework_TestCase
 
         $this->root->chmod(0555);
 
-        $directory = new File(vfsStream::url('root/some.file'));
+        $directory = new File(new FileInfo(vfsStream::url('root/some.file')));
         $directory->delete();
+    }
+
+    public function testChmod()
+    {
+        $this->markTestSkipped('Test not implemented, because for the development use windows.');
     }
 }

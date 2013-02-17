@@ -49,13 +49,15 @@ class FileInfo extends \SplFileInfo
         return new DirectoryObject($this->getRealPath());
     }
 
-    public function controlDirectory()
+    public function control()
     {
-        return new Control\Directory($this->getRealPath());
-    }
+        if ($this->isDir()) {
+            return new Control\Directory($this);
+        }
+        if ($this->isFile()) {
+            return new Control\File($this);
+        }
 
-    public function conrolFile()
-    {
-        return new Control\File($this->getRealPath());
+        throw new Exception\PathNotFoundException();
     }
 }

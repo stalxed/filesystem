@@ -1,53 +1,50 @@
 <?php
 namespace Stalxed\FileSystem\Control;
 
-class File extends \SplFileInfo implements ControlInterface
-{
-    public function getRealPath()
-    {
-        if (parse_url($this->getPathname(), PHP_URL_SCHEME) == 'vfs') {
-            return $this->getPathname();
-        }
+use Stalxed\FileSystem\FileInfo;
 
-        return parent::getRealPath();
+class File implements ControlInterface
+{
+    private $fileinfo;
+
+    public function __construct(FileInfo $fileinfo)
+    {
+        $this->fileinfo = $fileinfo;
     }
 
-    /**
-     * Создаёт файл.
-     * По умолчанию устанавливает права доступа 0644.
-     *
-     * @param integer $mode
-     * @throws System_FSException
-     */
     public function create($mode = 0644)
     {
-        if (! $this->getPathInfo()->isDir()) {
+        if (! $this->fileinfo->getPathInfo()->isDir()) {
             throw new Exception\DirectoryNotFoundException();
         }
-
-        if (! @touch($this->getRealPath())) {
-            throw new Exception\PermissionDeniedException();
-        }
-        if (! @chmod($this->getRealPath(), $mode)) {
-            throw new Exception\PermissionDeniedException();
-        }
-    }
-
-    /**
-     * Удаляет файл.
-     *
-     * @throws System_FSException
-     */
-    public function delete()
-    {
-        if ($this->isDir()) {
+        if ($this->fileinfo->isDir() || $this->fileinfo->isFile()) {
             throw new Exception\LogicException();
         }
-        if (! $this->isFile()) {
+
+        if (! @touch($this->fileinfo->getRealPath())) {
+            throw new Exception\PermissionDeniedException();
+        }
+        $this->chmod($mode);
+    }
+
+    public function delete()
+    {
+        if (! $this->fileinfo->isFile()) {
             throw new Exception\FileNotFoundException();
         }
 
-        if (! @unlink($this->getRealPath())) {
+        if (! @unlink($this->fileinfo->getRealPath())) {
+            throw new Exception\PermissionDeniedException();
+        }
+    }
+
+    public function chmod($chmod)
+    {
+        if (! $this->fileinfo->isFile()) {
+            throw new Exception\FileNotFoundException();
+        }
+
+        if (! @chmod($this->fileinfo->getRealPath(), $chmod)) {
             throw new Exception\PermissionDeniedException();
         }
     }

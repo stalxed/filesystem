@@ -72,45 +72,18 @@ class DirectoryObject extends \SplFileInfo
     public function clear()
     {
         $iterator = new \RecursiveIteratorIterator(
-                $this->createRecursiveDirectoryIterator(),
-                \RecursiveIteratorIterator::CHILD_FIRST
+            $this->createRecursiveDirectoryIterator(),
+            \RecursiveIteratorIterator::CHILD_FIRST
         );
 
         foreach ($iterator as $item) {
-            if ($item->isDir()) {
-                if (!@rmdir($item->getPathname())) {
-                    throw new Exception\RuntimeException('Failed to delete directory.', $this->directory_path);
-                }
-            } else {
-                if (!@unlink($item->getPathname())) {
-                    throw new Exception\RuntimeException('Failed to delete file.', $this->directory_path);
-                }
-            }
+            $item->getFileInfo()->control()->delete();
         }
     }
 
-    /**
-     * Устанавливает права доступа для записи для директории
-     * и всех вложенных элементов для всех пользователей.
-     *
-     * @throws System_FSException
-     */
-    public function makeWritableForAll()
+    public function chmodInternalContent($mode)
     {
-        $iterator = new \RecursiveIteratorIterator(
-                $this->createRecursiveDirectoryIterator(),
-                \RecursiveIteratorIterator::CHILD_FIRST
-        );
 
-        foreach ($iterator as $item) {
-            if (!@chmod($item->getPathname(), 0777)) {
-                throw new Exception\RuntimeException('Failed to change permissions.', $item->getPathname());
-            }
-        }
-
-        if (!@chmod($this->directory_path, 0777)) {
-            throw new Exception\RuntimeException('Failed to change permissions.', $this->directory_path);
-        }
     }
 
     /**
@@ -130,10 +103,12 @@ class DirectoryObject extends \SplFileInfo
             throw new Exception\RuntimeException('Directory destination is not exist.', $directory_destination_path);
         }
 
+        mkdir($directory_destination_path . '/' . $this->getBasename());
+
         $iterator = $this->createRecursiveDirectoryIterator();
         $iterator->rewind();
 
-        $this->coping($iterator, $directory_destination_path, $dirmode, $filemode);
+        $this->coping($iterator, $directory_destination_path . '/' . $this->getBasename(), $dirmode, $filemode);
     }
 
     /**
@@ -149,27 +124,18 @@ class DirectoryObject extends \SplFileInfo
     private function coping(\RecursiveDirectoryIterator $iterator, $directory_destination_path, $dirmode, $filemode)
     {
         foreach ($iterator as $item) {
-            $destination_path = $directory_destination_path . '/' . $iterator->getFilename();
+            $destination = new FileInfo($directory_destination_path . '/' . $iterator->getFilename());
 
             if ($iterator->hasChildren()) {
-                if ($iterator->isDir() && !is_dir($destination_path)) {
-                    if (!@mkdir($destination_path, $dirmode)) {
-                        throw new Exception\RuntimeException('Failed to create directory.', $destination_path);
-                    }
+                if ($iterator->isDir() && ! $destination->isDir()) {
+                    $destination->controlDirectory()->create($dirmode);
                 }
 
-                $this->coping($iterator->getChildren(), $destination_path, $dirmode, $filemode);
-            } elseif (!file_exists($destination_path)) {
-                if (!@copy($item->getPathname(), $destination_path)) {
-                    throw new Exception\RuntimeException(
-                            'Failed to copy the file to ' . $destination_path . '.',
-                            $item->getPathname()
-                    );
-                }
-
-                if (!@chmod($destination_path, $filemode)) {
-                    throw new Exception\RuntimeException('Failed to change permissions.', $destination_path);
-                }
+                $this->coping($iterator->getChildren(), $destination->getRealPath(), $dirmode, $filemode);
+            } elseif (! $destination->isFile()) {
+                $item->getFileInfo()->openFile()->copyTo(
+                    $destination->getRealPath()
+                );
             }
         }
     }

@@ -200,19 +200,6 @@ class FileObject extends \SplFileObject
     }
 
     /**
-     * Устанавливает права доступа для записи для всех
-     * пользователей.
-     *
-     * @throws System_FSException
-     */
-    public function makeWritableForAll()
-    {
-        if (!@chmod($this->getRealPath(), 0777)) {
-            throw new Exception\RuntimeException('Failed to change permissions.', $this->getRealPath());
-        }
-    }
-
-    /**
      * Копирует файл.
      * Если файл назначения уже существует, то его копирование
      * не выполняет. Если задан $filename, то файл назначения
@@ -224,21 +211,11 @@ class FileObject extends \SplFileObject
      * @param integer $mode
      * @throws System_FSException
      */
-    public function copyTo($directory_destination_path, $filename = '', $mode = 0644)
+    public function copyTo($file_destination_path, $mode = 0644)
     {
-        if (!is_dir($directory_destination_path)) {
-            throw new Exception\RuntimeException();
-        }
-
-        $file_destination_path = $directory_destination_path . '/';
-        if ($filename == '') {
-            $file_destination_path .= $this->getBasename();
-        } else {
-            $file_destination_path .= $filename . '.' . $this->getExtension();
-        }
-
-        if (!file_exists($file_destination_path)) {
-            if (!@copy($this->getRealPath(), $file_destination_path)) {
+        $fileinfo = new FileInfo($file_destination_path);
+        if (! $fileinfo->isFile()) {
+            if (! @copy($this->getRealPath(), $file_destination_path)) {
                 throw new Exception\RuntimeException();
             }
 
