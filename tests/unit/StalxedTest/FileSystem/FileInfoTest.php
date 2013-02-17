@@ -21,7 +21,8 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
                 'some3.file' => 'some text three'
             ),
             'empty_directory' => array(),
-            'some.file'       => 'some text'
+            'some.file'       => 'some text',
+            'empty.file'       => ''
         );
         $this->root = vfsStream::setup('root', null, $structure);
     }
