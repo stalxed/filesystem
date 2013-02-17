@@ -27,53 +27,69 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
 
     public function testGetRealPath_DirectoryInFileSystem()
     {
-        $directory = new FileInfo(__DIR__ . '/././.');
+        $fileinfo = new FileInfo(__DIR__ . '/././.');
 
-        $this->assertEquals(__DIR__, $directory->getRealPath());
+        $this->assertEquals(__DIR__, $fileinfo->getRealPath());
     }
 
     public function testGetRealPath_DirectoryInVfs()
     {
-        $directory = new FileInfo(vfsStream::url('root/some_directory'));
+        $fileinfo = new FileInfo(vfsStream::url('root/some_directory'));
 
-        $this->assertEquals($directory->getPathname(), $directory->getRealPath());
+        $this->assertEquals($fileinfo->getPathname(), $fileinfo->getRealPath());
     }
 
     public function testGetRealPath_FileInFileSystem()
     {
-        $directory = new FileInfo(__DIR__ . '/./././' . basename(__FILE__));
+        $fileinfo = new FileInfo(__DIR__ . '/./././' . basename(__FILE__));
 
-        $this->assertEquals(__FILE__, $directory->getRealPath());
+        $this->assertEquals(__FILE__, $fileinfo->getRealPath());
     }
 
     public function testGetRealPath_FileInVfs()
     {
-        $directory = new FileInfo(vfsStream::url('root/some.file'));
+        $fileinfo = new FileInfo(vfsStream::url('root/some.file'));
 
-        $this->assertEquals($directory->getPathname(), $directory->getRealPath());
+        $this->assertEquals($fileinfo->getPathname(), $fileinfo->getRealPath());
     }
 
     public function testOpenDirectory_SomeDirectory()
     {
-        $directory = new FileInfo(vfsStream::url('root/some_directory'));
+        $fileinfo = new FileInfo(vfsStream::url('root/some_directory'));
 
-        $expected = new DirectoryObject($directory->getRealPath());
-        $this->assertEquals($expected, $directory->openDirectory());
+        $expected = new DirectoryObject($fileinfo->getRealPath());
+        $this->assertEquals($expected, $fileinfo->openDirectory());
     }
 
     public function testControl_SomeDirectory()
     {
-        $directory = new FileInfo(vfsStream::url('root/some_directory'));
+        $fileinfo = new FileInfo(vfsStream::url('root/some_directory'));
 
-        $expected = new Control\Directory($directory);
-        $this->assertEquals($expected, $directory->control());
+        $expected = new Control\Directory($fileinfo);
+        $this->assertEquals($expected, $fileinfo->control());
     }
 
     public function testControl_SomeFile()
     {
-        $file = new FileInfo(vfsStream::url('root/some.file'));
+        $fileinfo = new FileInfo(vfsStream::url('root/some.file'));
 
-        $expected = new Control\File($file);
-        $this->assertEquals($expected, $file->control());
+        $expected = new Control\File($fileinfo);
+        $this->assertEquals($expected, $fileinfo->control());
+    }
+
+    public function testControl_NonexistentDirectory()
+    {
+        $fileinfo = new FileInfo(vfsStream::url('root/nonexistent_directory'));
+
+        $expected = new Control\Directory($fileinfo);
+        $this->assertEquals($expected, $fileinfo->control(FileInfo::TYPE_DIRECTORY));
+    }
+
+    public function testControl_NonexistentFile()
+    {
+        $fileinfo = new FileInfo(vfsStream::url('root/nonexistent.file'));
+
+        $expected = new Control\File($fileinfo);
+        $this->assertEquals($expected, $fileinfo->control(FileInfo::TYPE_FILE));
     }
 }
