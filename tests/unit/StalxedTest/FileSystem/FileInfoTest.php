@@ -15,12 +15,14 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
         parent::setUp();
 
         $structure = array(
-            'some_directory' => array(
-                'some1.file' => 'some text one',  // 13 bits
-                'some2.file' => 'some text two',  // 13 bits
-                'some3.file' => 'some text three' // 15 bits
+            'some_directory'  => array(
+                'some1.file' => 'some text one',   // 13 bits
+                'some2.file' => 'some text two',   // 13 bits
+                'some3.file' => 'some text three'  // 15 bits
             ),
-            'some.file'      => 'some text'       // 9 bits
+            'empty_directory' => array(),
+            'some.file'       => 'some text',      // 9 bits
+            'empty.file'      => ''                // 0 bit
         );
         $this->root = vfsStream::setup('root', null, $structure);
     }
@@ -67,6 +69,50 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(9, $fileinfo->getSize());
     }
 
+    public function testGetSize_UnknownPath()
+    {
+        $this->setExpectedException('Stalxed\FileSystem\Exception\PathNotFoundException');
+
+        $fileinfo = new FileInfo(vfsStream::url('root/nonexistent_directory/nonexistent.file'));
+        $fileinfo->getSize();
+    }
+
+    public function testIsEmpty_DirectoryWithFiles()
+    {
+        $fileinfo = new FileInfo(vfsStream::url('root/some_directory/'));
+
+        $this->assertFalse($fileinfo->isEmpty());
+    }
+
+    public function testIsEmpty_EmptyDirectory()
+    {
+        $fileinfo = new FileInfo(vfsStream::url('root/empty_directory'));
+
+        $this->assertTrue($fileinfo->isEmpty());
+    }
+
+    public function testIsEmpty_FileContainsText()
+    {
+        $fileinfo = new FileInfo(vfsStream::url('root/some.file'));
+
+        $this->assertFalse($fileinfo->isEmpty());
+    }
+
+    public function testIsEmpty_EmptyFile()
+    {
+        $fileinfo = new FileInfo(vfsStream::url('root/empty.file'));
+
+        $this->assertTrue($fileinfo->isEmpty());
+    }
+
+    public function testIsEmpty_UnknownPath()
+    {
+        $this->setExpectedException('Stalxed\FileSystem\Exception\PathNotFoundException');
+
+        $fileinfo = new FileInfo(vfsStream::url('root/nonexistent_directory/nonexistent.file'));
+        $fileinfo->isEmpty();
+    }
+
     public function testOpenDirectory_SomeDirectory()
     {
         $fileinfo = new FileInfo(vfsStream::url('root/some_directory'));
@@ -105,5 +151,13 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
 
         $expected = new Control\File($fileinfo);
         $this->assertEquals($expected, $fileinfo->control(FileInfo::TYPE_FILE));
+    }
+
+    public function testControl_UnknownPath()
+    {
+        $this->setExpectedException('Stalxed\FileSystem\Exception\PathNotFoundException');
+
+        $fileinfo = new FileInfo(vfsStream::url('root/nonexistent_directory/nonexistent.file'));
+        $fileinfo->control();
     }
 }
