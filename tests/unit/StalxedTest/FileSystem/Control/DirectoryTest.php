@@ -25,7 +25,7 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
         $this->root = vfsStream::setup('root', null, $structure);
     }
 
-    public function testCreate_OneLevel()
+    public function testCreate_NonexistentDirectory()
     {
         $directory = new Directory(new FileInfo(vfsStream::url('root/nonexistent_directory')));
         $directory->create();
