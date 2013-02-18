@@ -54,6 +54,22 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(0777, $this->root->getChild('nonexistent_directory')->getPermissions());
     }
 
+    public function testCreate_DirectoryAlreadyExists()
+    {
+        $this->setExpectedException('Stalxed\FileSystem\Exception\LogicException');
+
+        $directory = new Directory(new FileInfo(vfsStream::url('root/some_directory')));
+        $directory->create();
+    }
+
+    public function testCreate_FileAlreadyExists()
+    {
+        $this->setExpectedException('Stalxed\FileSystem\Exception\LogicException');
+
+        $directory = new Directory(new FileInfo(vfsStream::url('root/some.file')));
+        $directory->create();
+    }
+
     public function testCreate_ParentDirectoryReadOnly()
     {
         $this->setExpectedException('Stalxed\FileSystem\Exception\PermissionDeniedException');
@@ -64,18 +80,10 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
         $directory->create();
     }
 
-    public function testCreate_SomeFile()
-    {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\LogicException');
-
-        $directory = new Directory(new FileInfo(vfsStream::url('root/some.file')));
-        $directory->create();
-    }
-
     public function testDelete_EmptyDirectory()
     {
-        $file = new Directory(new FileInfo(vfsStream::url('root/empty_directory')));
-        $file->delete();
+        $directory = new Directory(new FileInfo(vfsStream::url('root/empty_directory')));
+        $directory->delete();
 
         $this->assertFalse($this->root->hasChild('empty_directory'));
     }
@@ -84,15 +92,23 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
     {
         $this->setExpectedException('Stalxed\FileSystem\Exception\DirectoryNotFoundException');
 
-        $file = new Directory(new FileInfo(vfsStream::url('root/nonexistent_directory')));
-        $file->delete();
+        $directory = new Directory(new FileInfo(vfsStream::url('root/nonexistent_directory')));
+        $directory->delete();
     }
 
-    public function testDelete_SomeFile()
+    public function testDelete_FileInsteadDirectory()
     {
         $this->setExpectedException('Stalxed\FileSystem\Exception\DirectoryNotFoundException');
 
         $directory = new Directory(new FileInfo(vfsStream::url('root/some.file')));
+        $directory->delete();
+    }
+
+    public function testDelete_DirectoryContainingFiles()
+    {
+        $this->setExpectedException('Stalxed\FileSystem\Control\Exception\DirectoryNotEmptyException');
+
+        $directory = new Directory(new FileInfo(vfsStream::url('root/some_directory/')));
         $directory->delete();
     }
 
@@ -106,11 +122,51 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
         $directory->delete();
     }
 
+    public function testChmod_DirectoryContainingFiles()
+    {
+        $someDirectory = $this->root->getChild('some_directory');
+        $someDirectory->getChild('some1.file')->chmod(0444);
+        $someDirectory->getChild('some2.file')->chmod(0444);
+        $someDirectory->getChild('some3.file')->chmod(0444);
+        $someDirectory->chmod(0555);
+
+        $directory = new Directory(new FileInfo(vfsStream::url('root/some_directory/')));
+        $directory->chmod(0777);
+
+        $this->assertEquals(0777, $someDirectory->getPermissions());
+        $this->assertEquals(0444, $someDirectory->getChild('some1.file')->getPermissions());
+        $this->assertEquals(0444, $someDirectory->getChild('some2.file')->getPermissions());
+        $this->assertEquals(0444, $someDirectory->getChild('some3.file')->getPermissions());
+    }
+
     public function testChmod_EmptyDirectory()
     {
+        $this->root->getChild('some_directory')->chmod(0555);
+
         $directory = new Directory(new FileInfo(vfsStream::url('root/empty_directory/')));
         $directory->chmod(0777);
 
         $this->assertEquals(0777, $this->root->getChild('empty_directory')->getPermissions());
+    }
+
+    public function testChmod_NonexistentDirectory()
+    {
+        $this->setExpectedException('Stalxed\FileSystem\Exception\DirectoryNotFoundException');
+
+        $directory = new Directory(new FileInfo(vfsStream::url('root/nonexistent_directory')));
+        $directory->chmod(0777);
+    }
+
+    public function testChmod_FileInsteadDirectory()
+    {
+        $this->setExpectedException('Stalxed\FileSystem\Exception\DirectoryNotFoundException');
+
+        $directory = new Directory(new FileInfo(vfsStream::url('root/some.file')));
+        $directory->chmod(0777);
+    }
+
+    public function testChmod_ParentDirectoryReadOnly()
+    {
+        $this->markTestSkipped('Limitation of the current version of the file system.');
     }
 }

@@ -77,7 +77,7 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
         $fileinfo->getSize();
     }
 
-    public function testIsEmpty_DirectoryWithFiles()
+    public function testIsEmpty_DirectoryContainingFiles()
     {
         $fileinfo = new FileInfo(vfsStream::url('root/some_directory/'));
 

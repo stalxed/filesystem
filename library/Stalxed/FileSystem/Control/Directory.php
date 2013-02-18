@@ -28,6 +28,9 @@ class Directory extends \SplFileInfo implements ControlInterface
         if (! $this->fileinfo->isDir()) {
             throw new Exception\DirectoryNotFoundException();
         }
+        if (! $this->fileinfo->isEmpty()) {
+            throw new Exception\DirectoryNotEmptyException();
+        }
 
         if (! @rmdir($this->fileinfo->getRealPath())) {
             throw new Exception\PermissionDeniedException();
