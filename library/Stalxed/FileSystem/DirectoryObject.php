@@ -5,10 +5,14 @@ class DirectoryObject extends \SplFileInfo
 {
     public function __construct($filename)
     {
+        parent::__construct($filename);
+
+        if (! $this->isDir()) {
+            throw new Exception\DirectoryNotFoundException();
+        }
+
         $this->setFileClass('Stalxed\FileSystem\FileObject');
         $this->setInfoClass('Stalxed\FileSystem\FileInfo');
-
-        parent::__construct($filename);
     }
 
     public function getRealPath()
@@ -27,16 +31,9 @@ class DirectoryObject extends \SplFileInfo
      */
     public function getSize()
     {
-        $iterator = new \RecursiveIteratorIterator(
-            $this->createRecursiveDirectoryIterator(),
-            \RecursiveIteratorIterator::SELF_FIRST
-        );
-
         $size = 0;
-        foreach ($iterator as $item) {
-            if ($item->isFile()) {
-                $size += $item->getSize();
-            }
+        foreach ($this->createDirectoryIterator() as $item) {
+            $size += $item->getFileInfo()->getSize();
         }
 
         return $size;
@@ -49,19 +46,11 @@ class DirectoryObject extends \SplFileInfo
      */
     public function isEmpty()
     {
-        $iterator = new \RecursiveIteratorIterator(
-                $this->createRecursiveDirectoryIterator(),
-                \RecursiveIteratorIterator::SELF_FIRST
-        );
-
-        $is_empty = true;
-        foreach ($iterator as $item) {
-            $is_empty = false;
-
-            break;
+        foreach ($this->createDirectoryIterator() as $item) {
+            return false;
         }
 
-        return $is_empty;
+        return true;
     }
 
     /**
@@ -71,19 +60,24 @@ class DirectoryObject extends \SplFileInfo
      */
     public function clear()
     {
-        $iterator = new \RecursiveIteratorIterator(
-            $this->createRecursiveDirectoryIterator(),
-            \RecursiveIteratorIterator::CHILD_FIRST
-        );
-
-        foreach ($iterator as $item) {
-            $item->getFileInfo()->control()->delete();
+        foreach ($this->createDirectoryIterator() as $item) {
+            $fileinfo = $item->getFileInfo();
+            if ($fileinfo->isDir()) {
+                $fileinfo->openDirectory()->clear();
+            }
+            $fileinfo->control()->delete();
         }
     }
 
     public function chmodInternalContent($mode)
     {
-
+        foreach ($this->createDirectoryIterator() as $item) {
+            $fileinfo = $item->getFileInfo();
+            if ($fileinfo->isDir()) {
+                $fileinfo->openDirectory()->chmodInternalContent($mode);
+            }
+            $fileinfo->control()->chmod($mode);
+        }
     }
 
     /**
@@ -92,23 +86,33 @@ class DirectoryObject extends \SplFileInfo
      * не выполняет. По умолчанию устанавливает права доступа
      * 0755 для директорий и 0644 для файлов.
      *
-     * @param string $directory_destination_path
+     * @param string $pathDestinationDirectory
      * @param integer $dirmode
      * @param integer $filemode
      * @throws System_FSException
      */
-    public function copyTo($directory_destination_path, $dirmode = 0755, $filemode = 0644)
-    {
-        if (!is_dir($directory_destination_path)) {
-            throw new Exception\RuntimeException('Directory destination is not exist.', $directory_destination_path);
+    public function copyTo(
+        $pathDestinationDirectory,
+        $copyMode = CopyMode::SKIP_EXISTING,
+        $dirmode = 0755,
+        $filemode = 0644
+    ) {
+        $destinationDirectory = new FileInfo($pathDestinationDirectory);
+        if (! $destinationDirectory->isDir()) {
+            throw new Exception\DirectoryNotFoundException();
         }
-
-        mkdir($directory_destination_path . '/' . $this->getBasename());
 
         $iterator = $this->createRecursiveDirectoryIterator();
         $iterator->rewind();
 
-        $this->coping($iterator, $directory_destination_path . '/' . $this->getBasename(), $dirmode, $filemode);
+        $newDestinationDirectory = new FileInfo($destinationDirectory->getRealPath() . '/' . $this->getBasename());
+        if ( ! $newDestinationDirectory->isDir()) {
+            $newDestinationDirectory->control()->create();
+        } elseif ($copyMode == CopyMode::ABORT_IF_EXISTS) {
+            throw new Exception\AbortException();
+        }
+
+        $this->coping($iterator, $newDestinationDirectory->getRealPath(), $dirmode, $filemode);
     }
 
     /**
@@ -116,26 +120,32 @@ class DirectoryObject extends \SplFileInfo
      * вложенными элементами.
      *
      * @param RecursiveDirectoryIterator $iterator
-     * @param string $directory_destination_path
+     * @param string $pathDestinationDirectory
      * @param integer $dirmode
      * @param integer $filemode
      * @throws System_FSException
      */
-    private function coping(\RecursiveDirectoryIterator $iterator, $directory_destination_path, $dirmode, $filemode)
-    {
+    private function coping(
+        \RecursiveDirectoryIterator $iterator,
+        $pathDestinationDirectory,
+        $copyMode = CopyMode::SKIP_EXISTING,
+        $dirmode = 0755,
+        $filemode = 0644
+    ) {
         foreach ($iterator as $item) {
-            $destination = new FileInfo($directory_destination_path . '/' . $iterator->getFilename());
+            $fileinfo = $item->getFileInfo();
+            $destinationDirectory = new FileInfo($pathDestinationDirectory . '/' . $fileinfo->getBasename());
 
             if ($iterator->hasChildren()) {
-                if ($iterator->isDir() && ! $destination->isDir()) {
-                    $destination->controlDirectory()->create($dirmode);
+                if (! $destinationDirectory->isDir()) {
+                    $destinationDirectory->controlDirectory()->create($dirmode);
+                } elseif($copyMode == CopyMode::ABORT_IF_EXISTS) {
+                    throw new Exception\AbortException();
                 }
 
-                $this->coping($iterator->getChildren(), $destination->getRealPath(), $dirmode, $filemode);
-            } elseif (! $destination->isFile()) {
-                $item->getFileInfo()->openFile()->copyTo(
-                    $destination->getRealPath()
-                );
+                $this->coping($iterator->getChildren(), $destinationDirectory->getRealPath(), $dirmode, $filemode);
+            } else {
+                $fileinfo->openFile()->copyTo($destinationDirectory->getRealPath(), $copyMode);
             }
         }
     }
@@ -157,9 +167,9 @@ class DirectoryObject extends \SplFileInfo
     public function createFilesystemIterator($flags = null)
     {
         if (isset($flags)) {
-            $iterator = new \FilesystemIterator($this->directory_path, $flags);
+            $iterator = new \FilesystemIterator($this->getRealPath(), $flags);
         } else {
-            $iterator = new \FilesystemIterator($this->directory_path);
+            $iterator = new \FilesystemIterator($this->getRealPath());
         }
         $iterator->setFileClass('Stalxed\FileSystem\FileObject');
         $iterator->setInfoClass('Stalxed\FileSystem\FileInfo');
@@ -170,9 +180,9 @@ class DirectoryObject extends \SplFileInfo
     public function createGlobIterator($flags)
     {
         if (isset($flags)) {
-            $iterator = new \GlobIterator($this->directory_path, $flags);
+            $iterator = new \GlobIterator($this->getRealPath(), $flags);
         } else {
-            $iterator = new \GlobIterator($this->directory_path);
+            $iterator = new \GlobIterator($this->getRealPath());
         }
         $iterator->setFileClass('Stalxed\FileSystem\FileObject');
         $iterator->setInfoClass('Stalxed\FileSystem\FileInfo');

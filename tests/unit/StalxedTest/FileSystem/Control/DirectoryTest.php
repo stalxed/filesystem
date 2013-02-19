@@ -56,7 +56,7 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
 
     public function testCreate_DirectoryAlreadyExists()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\LogicException');
+        $this->setExpectedException('Stalxed\FileSystem\Exception\UnexpectedValueException');
 
         $directory = new Directory(new FileInfo(vfsStream::url('root/some_directory')));
         $directory->create();
@@ -64,7 +64,7 @@ class DirectoryTest extends \PHPUnit_Framework_TestCase
 
     public function testCreate_FileAlreadyExists()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\LogicException');
+        $this->setExpectedException('Stalxed\FileSystem\Exception\UnexpectedValueException');
 
         $directory = new Directory(new FileInfo(vfsStream::url('root/some.file')));
         $directory->create();

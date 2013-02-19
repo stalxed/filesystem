@@ -211,17 +211,18 @@ class FileObject extends \SplFileObject
      * @param integer $mode
      * @throws System_FSException
      */
-    public function copyTo($file_destination_path, $mode = 0644)
+    public function copyTo($pathDestinationFile, $copyMode = CopyMode::SKIP_EXISTING, $mode = 0644)
     {
-        $fileinfo = new FileInfo($file_destination_path);
-        if (! $fileinfo->isFile()) {
-            if (! @copy($this->getRealPath(), $file_destination_path)) {
-                throw new Exception\RuntimeException();
+        $destinationFile = new FileInfo($pathDestinationFile);
+        if (! $destinationFile->isFile()) {
+            if (! @copy($this->getRealPath(), $destinationFile->getRealPath())) {
+                throw new Exception\PermissionDeniedException();
             }
-
-            if (!@chmod($this->getRealPath(), $mode)) {
-                throw new Exception\RuntimeException();
+            if (! @chmod($destinationFile->getRealPath(), $mode)) {
+                throw new Exception\PermissionDeniedException();;
             }
+        } elseif ($copyMode == CopyMode::ABORT_IF_EXISTS) {
+            throw new Exception\AbortException();
         }
     }
 }
