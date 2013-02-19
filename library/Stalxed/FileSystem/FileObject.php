@@ -126,31 +126,6 @@ class FileObject extends \SplFileObject
     }
 
     /**
-     * Ищет строчку по содержимому части(указывается разделитель
-     * частей и номер части).
-     *
-     * @param string $delimiter
-     * @param integer $part_number
-     * @param string $desired_value
-     * @return string
-     */
-    public function findLineByPart($delimiter, $part_number, $desired_value)
-    {
-        $desired_line = null;
-
-        foreach ($this as $line) {
-            $temp_parts = explode($delimiter, $line);
-            if (isset($temp_parts[$part_number]) && $temp_parts[$part_number] == $desired_value) {
-                $desired_line = $line;
-
-                break;
-            }
-        }
-
-        return $desired_line;
-    }
-
-    /**
      * Ищет строчку по фрагменту строки.
      * Если указан второй аргумент, то проверяется начальная
      * позиция вхождения.

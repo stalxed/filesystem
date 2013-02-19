@@ -119,20 +119,6 @@ class FileObjectTest extends \PHPUnit_Framework_TestCase
         $this->assertNull($file->findLineByNumber(3));
     }
 
-    public function testFindLineByPart()
-    {
-        $file = new FileObject(vfsStream::url('root/data.file'));
-
-        $this->assertSame("second|second line|line\n", $file->findLineByPart('|', 1, 'second line'));
-    }
-
-    public function testFindLineByPart_LineNotExist()
-    {
-        $file = new FileObject(vfsStream::url('root/data.file'));
-
-        $this->assertNull($file->findLineByPart('|', 1, 'fifth line'));
-    }
-
     public function testFindLineByString()
     {
         $file = new FileObject(vfsStream::url('root/three_lines.file'));
