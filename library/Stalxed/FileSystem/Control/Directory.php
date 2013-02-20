@@ -14,7 +14,7 @@ class Directory extends \SplFileInfo implements ControlInterface
 
     public function create($mode = 0755)
     {
-        if ($this->fileinfo->isDir() || $this->fileinfo->isFile()) {
+        if ($this->fileinfo->isExists()) {
             throw new Exception\UnexpectedValueException();
         }
 

@@ -23,6 +23,11 @@ class FileInfo extends \SplFileInfo
         return parent::getRealPath();
     }
 
+    public function isExists()
+    {
+        return ($this->isFile() || $this->isDir() || $this->isLink());
+    }
+
     public function getSize()
     {
         if ($this->isDir()) {

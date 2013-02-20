@@ -17,7 +17,7 @@ class File implements ControlInterface
         if (! $this->fileinfo->getPathInfo()->isDir()) {
             throw new Exception\DirectoryNotFoundException();
         }
-        if ($this->fileinfo->isDir() || $this->fileinfo->isFile()) {
+        if ($this->fileinfo->isExists()) {
             throw new Exception\UnexpectedValueException();
         }
 

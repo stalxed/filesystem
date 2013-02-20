@@ -189,7 +189,7 @@ class FileObject extends \SplFileObject
     public function copyTo($pathDestinationFile, $copyMode = CopyMode::SKIP_EXISTING, $mode = 0644)
     {
         $destinationFile = new FileInfo($pathDestinationFile);
-        if (! $destinationFile->isFile()) {
+        if (! $destinationFile->isExists()) {
             if (! @copy($this->getRealPath(), $destinationFile->getRealPath())) {
                 throw new Exception\PermissionDeniedException();
             }

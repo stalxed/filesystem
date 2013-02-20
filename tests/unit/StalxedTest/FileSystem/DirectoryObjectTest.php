@@ -52,6 +52,13 @@ class DirectoryObjectTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($directory->getPathname(), $directory->getRealPath());
     }
 
+    public function testIsEmpty_DirectoryContainingFiles()
+    {
+        $directory = new DirectoryObject(vfsStream::url('root/some_directory/sub1/subsub/'));
+
+        $this->assertFalse($directory->isEmpty());
+    }
+
     public function testIsEmpty_DirectoryContainsSubdirectoriesAndFiles()
     {
         $directory = new DirectoryObject(vfsStream::url('root/some_directory/'));
@@ -64,6 +71,13 @@ class DirectoryObjectTest extends \PHPUnit_Framework_TestCase
         $directory = new DirectoryObject(vfsStream::url('root/empty_directory/'));
 
         $this->assertTrue($directory->isEmpty());
+    }
+
+    public function testGetSize_DirectoryContainingFiles()
+    {
+        $directory = new DirectoryObject(vfsStream::url('root/some_directory/sub1/subsub/'));
+
+        $this->assertEquals(41, $directory->getSize());
     }
 
     public function testGetSize_DirectoryContainsSubdirectoriesAndFiles()
@@ -80,12 +94,27 @@ class DirectoryObjectTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(0, $directory->getSize());
     }
 
+    public function testClear_DirectoryContainingFiles()
+    {
+        $directory = new DirectoryObject(vfsStream::url('root/some_directory/sub1/subsub/'));
+
+        $this->assertEquals(41, $directory->getSize());
+    }
+
     public function testClear_DirectoryContainsSubdirectoriesAndFiles()
     {
          $do = new DirectoryObject(vfsStream::url('root/'));
          $do->clear();
 
          $this->assertFalse($this->root->hasChildren());
+    }
+
+    public function testClear_EmptyDirectory()
+    {
+        $directory = new DirectoryObject(vfsStream::url('root/empty_directory/'));
+        $directory->clear();
+
+        $this->assertFalse($this->root->getChild('empty_directory')->hasChildren());
     }
 
     public function testClear_DirectoryReadOnly()
@@ -139,7 +168,7 @@ class DirectoryObjectTest extends \PHPUnit_Framework_TestCase
         $this->fail('An expected exception has not been raised.');
     }
 
-    public function testCreateDirectoryIterator()
+    public function testCreateDirectoryIterator_DirectoryContainingFiles()
     {
         $directory = new DirectoryObject(vfsStream::url('root/some_directory/'));
 
