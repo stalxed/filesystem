@@ -18,7 +18,7 @@ class Link
             throw new Exception\FileNotFoundException();
         }
 
-        if (! @unlink($this->fileinfo->getRealPath())) {
+        if (! @unlink($this->fileinfo->getPathname())) {
             throw new Exception\PermissionDeniedException();
         }
     }
