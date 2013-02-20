@@ -59,6 +59,9 @@ class FileInfo extends \SplFileInfo
 
     public function control($type = null)
     {
+        if ($this->isLink()) {
+            return new Control\Link($this);
+        }
         if ($this->isDir()) {
             return new Control\Directory($this);
         }

@@ -61,7 +61,7 @@ class DirectoryObject extends \SplFileInfo
     public function clear()
     {
         foreach ($this->createFilesystemIterator() as $fileinfo) {
-            if ($fileinfo->isDir()) {
+            if ($fileinfo->isDir() && ! $fileinfo->isLink()) {
                 $fileinfo->openDirectory()->clear();
             }
             $fileinfo->control()->delete();
