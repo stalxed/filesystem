@@ -1,165 +1,209 @@
 <?php
 namespace StalxedTest\FileSystem\Control;
 
-use org\bovigo\vfs\vfsStream;
 use Stalxed\FileSystem\Control\File;
 use Stalxed\FileSystem\FileInfo;
+use StalxedTest\FileSystem\TestHelper\Storage;
 
 class FileTest extends \PHPUnit_Framework_TestCase
 {
     private $root;
+    private $storage;
 
     protected function setUp()
     {
         parent::setUp();
 
-        $structure = array(
-            'some_directory' => array(
-                'some1.file' => 'some text one',
-                'some2.file' => 'some text two',
-                'some3.file' => 'some text three'
-            ),
-            'some.file'      => 'some text',
-            'empty.file'     => ''
-        );
-        $this->root = vfsStream::setup('root', null, $structure);
+        $this->storage = new Storage();
     }
 
-    /**
-     * @requires PHP 5.4
-     *
-     */
+    protected function tearDown()
+    {
+        $this->storage->tearDown();
+
+        parent::tearDown();
+    }
+
     public function testCreate_NonexistentFile()
     {
-        $file = new File(new FileInfo(vfsStream::url('root/nonexistent.file')));
+        if (substr(PHP_OS, 0, 3) == 'WIN') {
+            $this->markTestSkipped('Not testable on windows.');
+        }
+
+        $file = new File(new FileInfo($this->storage->getPath('nonexistent.file')));
         $file->create();
 
-        $this->assertTrue($this->root->hasChild('nonexistent.file'));
-        $this->assertEquals(0644, $this->root->getChild('nonexistent.file')->getPermissions());
+        $this->storage->assertFileExists('nonexistent.file');
+        $this->storage->assertPermissions('644', 'nonexistent.file');
+    }
+
+    public function testCreate_ModeSet777()
+    {
+        if (substr(PHP_OS, 0, 3) == 'WIN') {
+            $this->markTestSkipped('Not testable on windows.');
+        }
+
+        $file = new File(new FileInfo($this->storage->getPath('nonexistent.file')));
+        $file->create(0777);
+
+        $this->storage->assertFileExists('nonexistent.file');
+        $this->storage->assertPermissions('777', 'nonexistent.file');
     }
 
     /**
-     * @requires PHP 5.4
-     *
+     * @expectedException Stalxed\FileSystem\Control\Exception\DirectoryNotFoundException
      */
-    public function testCreate_ModeSet777()
-    {
-        $file = new File(new FileInfo(vfsStream::url('root/nonexistent.file')));
-        $file->create(0777);
-
-        $this->assertTrue($this->root->hasChild('nonexistent.file'));
-        $this->assertEquals(0777, $this->root->getChild('nonexistent.file')->getPermissions());
-    }
-
     public function testCreate_ParentDirectoryNotExist()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Control\Exception\DirectoryNotFoundException');
-
-        $file = new File(new FileInfo(vfsStream::url('root/nonexistent_directory/nonexistent.file')));
+        $file = new File(new FileInfo($this->storage->getPath('nonexistent_directory/nonexistent.file')));
         $file->create();
     }
 
+    /**
+     * @expectedException Stalxed\FileSystem\Exception\UnexpectedValueException
+     */
     public function testCreate_FileAlreadyExists()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\UnexpectedValueException');
+        $this->storage->createFile('some.file');
 
-        $file = new File(new FileInfo(vfsStream::url('root/some.file')));
-        $file->create();
+        $file = new File(new FileInfo($this->storage->getPath('some.file')));
+        $file->create(0777);
     }
 
+    /**
+     * @expectedException Stalxed\FileSystem\Exception\UnexpectedValueException
+     */
     public function testCreate_DirectoryAlreadyExists()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\UnexpectedValueException');
+        $this->storage->createDirectory('some_directory');
 
-        $file = new File(new FileInfo(vfsStream::url('root/some_directory/')));
-        $file->create();
+        $file = new File(new FileInfo($this->storage->getPath('some_directory')));
+        $file->create(0777);
     }
 
+    /**
+     * @expectedException Stalxed\FileSystem\Exception\PermissionDeniedException
+     */
     public function testCreate_ParentDirectoryReadOnly()
     {
-        $this->markTestSkipped('Limitation of the current version of the file system.');
+        if (substr(PHP_OS, 0, 3) == 'WIN') {
+            $this->markTestSkipped('Not testable on windows.');
+        }
+
+        $this->storage->createDirectory('parent_directory/');
+        $this->storage->chmod('parent_directory/', 0555);
+
+        $file = new File(new FileInfo($this->storage->getPath('parent_directory/some.file')));
+        $file->create(0777);
     }
 
     public function testDelete_FileContainingText()
     {
-        $file = new File(new FileInfo(vfsStream::url('root/some.file')));
+        $this->storage->createFile('some.file');
+        $this->storage->filePutContents('some.file', 'some text');
+
+        $file = new File(new FileInfo($this->storage->getPath('some.file')));
         $file->delete();
 
-        $this->assertFalse($this->root->hasChild('some.file'));
+        $this->assertFileNotExists('some.file');
     }
 
     public function testDelete_EmptyFile()
     {
-        $file = new File(new FileInfo(vfsStream::url('root/empty.file')));
+        $this->storage->createFile('empty.file');
+
+        $file = new File(new FileInfo($this->storage->getPath('empty.file')));
         $file->delete();
 
-        $this->assertFalse($this->root->hasChild('empty.file'));
+        $this->assertFileNotExists('empty.file');
     }
 
+    /**
+     * @expectedException Stalxed\FileSystem\Control\Exception\FileNotFoundException
+     */
     public function testDelete_NonexistentFile()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Control\Exception\FileNotFoundException');
-
-        $file = new File(new FileInfo(vfsStream::url('root/nonexistent.file')));
+        $file = new File(new FileInfo($this->storage->getPath('nonexistent.file')));
         $file->delete();
     }
 
+    /**
+     * @expectedException Stalxed\FileSystem\Control\Exception\FileNotFoundException
+     */
     public function testDelete_DirectoryInsteadFile()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Control\Exception\FileNotFoundException');
+        $this->storage->createDirectory('some_directory');
 
-        $directory = new File(new FileInfo(vfsStream::url('root/some_directory')));
-        $directory->delete();
+        $file = new File(new FileInfo($this->storage->getPath('some_directory')));
+        $file->delete();
     }
 
+    /**
+     * @expectedException Stalxed\FileSystem\Control\Exception\PermissionDeniedException
+     */
     public function testDelete_ParentDirectoryReadOnly()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Control\Exception\PermissionDeniedException');
+        if (substr(PHP_OS, 0, 3) == 'WIN') {
+            $this->markTestSkipped('Not testable on windows.');
+        }
 
-        $this->root->chmod(0555);
+        $this->storage->createDirectory('parent_directory/');
+        $this->storage->createFile('parent_directory/some.file');
+        $this->storage->chmod('parent_directory/', 0555);
 
-        $directory = new File(new FileInfo(vfsStream::url('root/some.file')));
-        $directory->delete();
+
+        $file = new File(new FileInfo($this->storage->getPath('parent_directory/some.file')));
+        $file->delete();
     }
 
     public function testChmod_FileContainingText()
     {
-        $this->root->getChild('some.file')->chmod(0555);
+        if (substr(PHP_OS, 0, 3) == 'WIN') {
+            $this->markTestSkipped('Not testable on windows.');
+        }
 
-        $file = new File(new FileInfo(vfsStream::url('root/some.file')));
+        $this->storage->createFile('some.file');
+        $this->storage->filePutContents('some.file', 'some text');
+        $this->storage->chmod('some.file', 0555);
+
+        $file = new File(new FileInfo($this->storage->getPath('some.file')));
         $file->chmod(0777);
 
-        $this->assertEquals(0777, $this->root->getChild('some.file')->getPermissions());
+        $this->storage->assertPermissions('777', 'some.file');
     }
 
     public function testChmod_EmptyFile()
     {
-        $this->root->getChild('empty.file')->chmod(0555);
+        if (substr(PHP_OS, 0, 3) == 'WIN') {
+            $this->markTestSkipped('Not testable on windows.');
+        }
 
-        $file = new File(new FileInfo(vfsStream::url('root/empty.file')));
+        $this->storage->createFile('empty.file');
+        $this->storage->chmod('empty.file', 0555);
+
+        $file = new File(new FileInfo($this->storage->getPath('empty.file')));
         $file->chmod(0777);
 
-        $this->assertEquals(0777, $this->root->getChild('empty.file')->getPermissions());
+        $this->storage->assertPermissions('777', 'empty.file');
     }
 
+    /**
+     * @expectedException Stalxed\FileSystem\Control\Exception\FileNotFoundException
+     */
     public function testChmod_NonexistentFile()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\FileNotFoundException');
-
-        $file = new File(new FileInfo(vfsStream::url('root/nonexistent.file')));
+        $file = new File(new FileInfo($this->storage->getPath('nonexistent.file')));
         $file->chmod(0777);
     }
 
+    /**
+     * @expectedException Stalxed\FileSystem\Control\Exception\FileNotFoundException
+     */
     public function testChmod_DirectoryInsteadFile()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\FileNotFoundException');
+        $this->storage->createDirectory('some_directory');
 
-        $file = new File(new FileInfo(vfsStream::url('root/some_directory/')));
+        $file = new File(new FileInfo($this->storage->getPath('some_directory')));
         $file->chmod(0777);
-    }
-
-    public function testChmod_ParentDirectoryReadOnly()
-    {
-        $this->markTestSkipped('Limitation of the current version of the file system.');
     }
 }

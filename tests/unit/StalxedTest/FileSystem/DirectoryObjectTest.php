@@ -1,139 +1,174 @@
 <?php
 namespace StalxedTest\FileSystem;
 
-use org\bovigo\vfs\vfsStream;
 use Stalxed\FileSystem\DirectoryObject;
-use org\bovigo\vfs\visitor\vfsStreamStructureVisitor;
+use StalxedTest\FileSystem\TestHelper\Storage;
 
 class DirectoryObjectTest extends \PHPUnit_Framework_TestCase
 {
+    private $storage;
+
     protected function setUp()
     {
         parent::setUp();
 
-        $structure = array(
-            'some_directory'   => array(
-                'sub1' => array(
-                    'subsub' => array(
-                        'some1.file' => 'some text one',  // 13 bits
-                        'some2.file' => 'some text two',  // 13 bits
-                        'some3.file' => 'some text three' // 15 bits
-                    ),
-                ),
-                'sub2' => array(
-                    'subsub1' => array(
-                        'some1.file' => 'some text one',  // 13 bits
-                        'some2.file' => 'some text two',  // 13 bits
-                        'some3.file' => 'some text three' // 15 bits
-                    ),
-                    'subsub2' => array(
-                        'some1.file' => 'some text one',  // 13 bits
-                        'some2.file' => 'some text two',  // 13 bits
-                        'some3.file' => 'some text three' // 15 bits
-                    )
-                ),
-            ),
-            'empty_directory'  => array()
-        );
-        $this->root = vfsStream::setup('root', null, $structure);
+        $this->storage = new Storage();
     }
 
-    public function testGetRealPath_DirectoryInFileSystem()
+    protected function tearDown()
     {
-        $directory = new DirectoryObject(__DIR__ . '/././.');
+        $this->storage->tearDown();
 
-        $this->assertEquals(__DIR__, $directory->getRealPath());
-    }
-
-    public function testGetRealPath_DirectoryInVfs()
-    {
-        $directory = new DirectoryObject(vfsStream::url('root/some_directory/'));
-
-        $this->assertEquals($directory->getPathname(), $directory->getRealPath());
+        parent::tearDown();
     }
 
     public function testIsEmpty_DirectoryContainingFiles()
     {
-        $directory = new DirectoryObject(vfsStream::url('root/some_directory/sub1/subsub/'));
+        $this->storage->createDirectory('some_directory/');
+        $this->storage->createFile('some_directory/some1.file');
+        $this->storage->createFile('some_directory/some2.file');
+        $this->storage->createFile('some_directory/some3.file');
+
+        $directory = new DirectoryObject($this->storage->getPath('some_directory/'));
 
         $this->assertFalse($directory->isEmpty());
     }
 
     public function testIsEmpty_DirectoryContainsSubdirectoriesAndFiles()
     {
-        $directory = new DirectoryObject(vfsStream::url('root/some_directory/'));
+        $this->storage->createDirectory('some_directory/');
+        $this->storage->createDirectory('some_directory/sub1/');
+        $this->storage->createFile('some_directory/sub1/some1.file');
+        $this->storage->createFile('some_directory/sub1/some2.file');
+        $this->storage->createFile('some_directory/sub1/some3.file');
+        $this->storage->createDirectory('some_directory/sub2/');
+        $this->storage->createFile('some_directory/sub2/some1.file');
+        $this->storage->createFile('some_directory/sub2/some2.file');
+        $this->storage->createFile('some_directory/sub2/some3.file');
+
+        $directory = new DirectoryObject($this->storage->getPath('some_directory/'));
 
         $this->assertFalse($directory->isEmpty());
     }
 
     public function testIsEmpty_EmptyDirectory()
     {
-        $directory = new DirectoryObject(vfsStream::url('root/empty_directory/'));
+        $this->storage->createDirectory('empty_directory/');
+
+        $directory = new DirectoryObject($this->storage->getPath('empty_directory/'));
 
         $this->assertTrue($directory->isEmpty());
     }
 
     public function testGetSize_DirectoryContainingFiles()
     {
-        $directory = new DirectoryObject(vfsStream::url('root/some_directory/sub1/subsub/'));
+        $this->storage->createDirectory('directory/');
+        $this->storage->createDirectory('directory/sub1/');
+        $this->storage->createFile('directory/sub1/some1.file');
+        $this->storage->createFile('directory/sub1/some2.file');
+        $this->storage->createFile('directory/sub1/some3.file');
+        $this->storage->createDirectory('directory/sub2/');
+        $this->storage->createFile('directory/sub2/some1.file');
+        $this->storage->createFile('directory/sub2/some2.file');
+        $this->storage->createFile('directory/sub2/some3.file');
+        $this->storage->filePutContents('directory/sub1/some1.file', 'some text one');   // 13 bits
+        $this->storage->filePutContents('directory/sub1/some2.file', 'some text two');   // 13 bits
+        $this->storage->filePutContents('directory/sub1/some3.file', 'some text three'); // 15 bits
+        $this->storage->filePutContents('directory/sub2/some1.file', 'some text one');   // 13 bits
+        $this->storage->filePutContents('directory/sub2/some2.file', 'some text two');   // 13 bits
+        $this->storage->filePutContents('directory/sub2/some3.file', 'some text three'); // 15 bits
 
-        $this->assertEquals(41, $directory->getSize());
+        $directory = new DirectoryObject($this->storage->getPath('directory/'));
+
+        $this->assertEquals(82, $directory->getSize());
     }
 
     public function testGetSize_DirectoryContainsSubdirectoriesAndFiles()
     {
-        $directory = new DirectoryObject(vfsStream::url('root/some_directory/'));
+        $this->storage->createDirectory('some_directory/');
+        $this->storage->createFile('some_directory/some1.file');
+        $this->storage->filePutContents('some_directory/some1.file', 'some text one');   // 13 bits
+        $this->storage->createFile('some_directory/some2.file');
+        $this->storage->filePutContents('some_directory/some2.file', 'some text two');   // 13 bits
+        $this->storage->createFile('some_directory/some3.file');
+        $this->storage->filePutContents('some_directory/some3.file', 'some text three'); // 15 bits
 
-        $this->assertEquals(123, $directory->getSize());
+        $directory = new DirectoryObject($this->storage->getPath('some_directory/'));
+
+        $this->assertEquals(41, $directory->getSize());
     }
 
     public function testGetSize_EmptyDirectory()
     {
-        $directory = new DirectoryObject(vfsStream::url('root/empty_directory/'));
+        $this->storage->createDirectory('empty_directory/');
+
+        $directory = new DirectoryObject($this->storage->getPath('empty_directory/'));
 
         $this->assertEquals(0, $directory->getSize());
     }
 
     public function testClear_DirectoryContainingFiles()
     {
-        $directory = new DirectoryObject(vfsStream::url('root/some_directory/sub1/subsub/'));
+        $this->storage->createDirectory('some_directory/');
+        $this->storage->createFile('some_directory/some1.file');
+        $this->storage->createFile('some_directory/some2.file');
+        $this->storage->createFile('some_directory/some3.file');
 
-        $this->assertEquals(41, $directory->getSize());
+        $directory = new DirectoryObject($this->storage->getPath('some_directory/'));
+        $directory->clear();
+
+        $this->assertTrue($directory->isEmpty());
     }
 
     public function testClear_DirectoryContainsSubdirectoriesAndFiles()
     {
-         $do = new DirectoryObject(vfsStream::url('root/'));
-         $do->clear();
+        $this->storage->createDirectory('directory/');
+        $this->storage->createDirectory('directory/sub1/');
+        $this->storage->createFile('directory/sub1/some1.file');
+        $this->storage->createFile('directory/sub1/some2.file');
+        $this->storage->createFile('directory/sub1/some3.file');
+        $this->storage->createDirectory('directory/sub2/');
+        $this->storage->createFile('directory/sub2/some1.file');
+        $this->storage->createFile('directory/sub2/some2.file');
+        $this->storage->createFile('directory/sub2/some3.file');
 
-         $this->assertFalse($this->root->hasChildren());
+        $directory = new DirectoryObject($this->storage->getPath('directory/'));
+        $directory->clear();
+
+        $this->assertTrue($directory->isEmpty());
     }
 
     public function testClear_EmptyDirectory()
     {
-        $directory = new DirectoryObject(vfsStream::url('root/empty_directory/'));
+        $this->storage->createDirectory('empty_directory/');
+
+        $directory = new DirectoryObject($this->storage->getPath('empty_directory/'));
         $directory->clear();
 
-        $this->assertFalse($this->root->getChild('empty_directory')->hasChildren());
+        $this->assertTrue($directory->isEmpty());
     }
 
     public function testClear_DirectoryReadOnly()
     {
-        $this->root
-            ->getChild('some_directory')
-            ->getChild('sub1')
-            ->chmod(0555);
+        if (substr(PHP_OS, 0, 3) == 'WIN') {
+            $this->markTestSkipped('Not testable on windows.');
+        }
+
+        $this->storage->createDirectory('directory/');
+        $this->storage->createDirectory('directory/sub/');
+        $this->storage->createFile('directory/sub/some1.file');
+        $this->storage->createFile('directory/sub/some2.file');
+        $this->storage->createFile('directory/sub/some3.file');
+        $this->storage->chmod('directory/', 0555);
 
         try {
-            $directory = new DirectoryObject(vfsStream::url('root/some_directory/sub1/'));
+            $directory = new DirectoryObject($this->storage->getPath('directory/'));
             $directory->clear();
         } catch (\Stalxed\FileSystem\Exception\PermissionDeniedException $e) {
-            $sub1 = $this->root
-                ->getChild('some_directory')
-                ->getChild('sub1');
-
-            $this->assertTrue($sub1->hasChild('subsub'));
-            $this->assertFalse($sub1->getChild('subsub')->hasChildren());
+            $this->storage->assertDirectoryExists('directory/sub/');
+            $this->storage->assertFileNotExists('directory/sub/some1.file');
+            $this->storage->assertFileNotExists('directory/sub/some2.file');
+            $this->storage->assertFileNotExists('directory/sub/some3.file');
 
             return;
         }
@@ -143,24 +178,25 @@ class DirectoryObjectTest extends \PHPUnit_Framework_TestCase
 
     public function testClear_SubDirectoryReadOnly()
     {
-        $this->root
-            ->getChild('some_directory')
-            ->getChild('sub1')
-            ->getChild('subsub')
-            ->chmod(0555);
+        if (substr(PHP_OS, 0, 3) == 'WIN') {
+            $this->markTestSkipped('Not testable on windows.');
+        }
+
+        $this->storage->createDirectory('directory/');
+        $this->storage->createDirectory('directory/sub/');
+        $this->storage->createFile('directory/sub/some1.file');
+        $this->storage->createFile('directory/sub/some2.file');
+        $this->storage->createFile('directory/sub/some3.file');
+        $this->storage->chmod('directory/sub', 0555);
 
         try {
-            $directory = new DirectoryObject(vfsStream::url('root/some_directory/sub1/'));
+            $directory = new DirectoryObject($this->storage->getPath('directory/'));
             $directory->clear();
         } catch (\Stalxed\FileSystem\Exception\PermissionDeniedException $e) {
-            $sub1 = $this->root
-                ->getChild('some_directory')
-                ->getChild('sub1');
-
-            $this->assertTrue($sub1->hasChild('subsub'));
-            $this->assertTrue($sub1->getChild('subsub')->hasChild('some1.file'));
-            $this->assertTrue($sub1->getChild('subsub')->hasChild('some2.file'));
-            $this->assertTrue($sub1->getChild('subsub')->hasChild('some3.file'));
+            $this->storage->assertDirectoryExists('directory/sub/');
+            $this->storage->assertFileExists('directory/sub/some1.file');
+            $this->storage->assertFileExists('directory/sub/some2.file');
+            $this->storage->assertFileExists('directory/sub/some3.file');
 
             return;
         }
@@ -170,22 +206,13 @@ class DirectoryObjectTest extends \PHPUnit_Framework_TestCase
 
     public function testCreateDirectoryIterator_DirectoryContainingFiles()
     {
-        $directory = new DirectoryObject(vfsStream::url('root/some_directory/'));
+        $this->storage->createDirectory('some_directory/');
 
-        $expected = new \DirectoryIterator(vfsStream::url('root/some_directory/'));
+        $directory = new DirectoryObject($this->storage->getPath('some_directory/'));
+
+        $expected = new \DirectoryIterator($this->storage->getPath('some_directory/'));
         $expected->setFileClass('Stalxed\FileSystem\FileObject');
         $expected->setInfoClass('Stalxed\FileSystem\FileInfo');
         $this->assertEquals($expected, $directory->createDirectoryIterator());
-    }
-
-    private function assertStructureVfs($expected, $actual)
-    {
-        $expectedVisitor = new vfsStreamStructureVisitor();
-        $expectedVisitor->visitDirectory($expected);
-
-        $actualVisitor = new vfsStreamStructureVisitor();
-        $actualVisitor->visitDirectory($actual);
-
-        $this->assertEquals($expectedVisitor->getStructure(), $actualVisitor->getStructure());
     }
 }

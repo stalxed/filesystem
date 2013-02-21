@@ -7,19 +7,10 @@ class FileObject extends \SplFileObject
 {
     public function __construct($filename, $openMode = 'r', $useIncludePath = 'false')
     {
+        parent::__construct($filename, $openMode, $useIncludePath);
+
         $this->setFileClass('Stalxed\FileSystem\FileObject');
         $this->setInfoClass('Stalxed\FileSystem\FileInfo');
-
-        parent::__construct($filename, $openMode, $useIncludePath);
-    }
-
-    public function getRealPath()
-    {
-        if (parse_url($this->getPathname(), PHP_URL_SCHEME) == 'vfs') {
-            return $this->getPathname();
-        }
-
-        return parent::getRealPath();
     }
 
     /**
@@ -190,7 +181,7 @@ class FileObject extends \SplFileObject
     {
         $destinationFile = new FileInfo($pathDestinationFile);
         if (! $destinationFile->isExists()) {
-            if (! @copy($this->getRealPath(), $destinationFile->getRealPath())) {
+            if (! @copy($this->getRealPath(), $destinationFile->getPathname())) {
                 throw new Exception\PermissionDeniedException();
             }
             if (! @chmod($destinationFile->getRealPath(), $mode)) {

@@ -1,141 +1,161 @@
 <?php
 namespace StalxedTest\FileSystem;
 
-use org\bovigo\vfs\vfsStream;
 use Stalxed\FileSystem\FileObject;
 use Stalxed\System\Random;
+use StalxedTest\FileSystem\TestHelper\Storage;
 
 class FileObjectTest extends \PHPUnit_Framework_TestCase
 {
-    private $root;
+    private $storage;
 
     protected function setUp()
     {
         parent::setUp();
 
-        $structure = array(
-            'some.file'        => 'some text',
-            'empty.file'       => '',
-            'three_lines.file' => "one\ntwo\nthree",
-            'newlines.file'    => "\n\n\n",
-            'data.file'        =>
-                "first|first line|line\n" .
-                "second|second line|line\n" .
-                "third|third line|line\n",
-            'directory'        => array()
-        );
-
-        $this->root = vfsStream::setup('root', null, $structure);
+        $this->storage = new Storage();
     }
 
-    public function testGetRealPath_FileInFileSystem()
+    protected function tearDown()
     {
-        $directory = new FileObject(__DIR__ . '/./././' . basename(__FILE__));
+        $this->storage->tearDown();
 
-        $this->assertEquals(__FILE__, $directory->getRealPath());
-    }
-
-    public function testGetRealPath_FileInVfs()
-    {
-        $directory = new FileObject(vfsStream::url('root/some.file'));
-
-        $this->assertEquals($directory->getPathname(), $directory->getRealPath());
+        parent::tearDown();
     }
 
     public function testIsEmpty_FileNotEmpty()
     {
-        $file = new FileObject(vfsStream::url('root/some.file'));
+        $this->storage->createFile('some.file');
+        $this->storage->filePutContents('some.file', 'some text');
+
+        $file = new FileObject($this->storage->getPath('some.file'));
 
         $this->assertFalse($file->isEmpty());
     }
 
-    public function testIsEmpty_FileEmpty()
+    public function testIsEmpty_EmptyFile()
     {
-        $file = new FileObject(vfsStream::url('root/empty.file'));
+        $this->storage->createFile('empty.file');
+
+        $file = new FileObject($this->storage->getPath('empty.file'));
 
         $this->assertTrue($file->isEmpty());
     }
 
     public function testGetLineCount_FileWithThreeLines()
     {
-        $file = new FileObject(vfsStream::url('root/three_lines.file'));
+        $this->storage->createFile('three_lines.file');
+        $this->storage->filePutContents('three_lines.file', "one\ntwo\nthree");
+
+        $file = new FileObject($this->storage->getPath('three_lines.file'));
 
         $this->assertSame(3, $file->getLineCount());
     }
 
     public function testGetLineCount_EmptyFile()
     {
-        $file = new FileObject(vfsStream::url('root/empty.file'));
+        $this->storage->createFile('empty.file');
 
-        $this->assertSame(0, $file->getLineCount());
+        $file = new FileObject($this->storage->getPath('empty.file'));
+
+        $this->assertSame(1, $file->getLineCount());
     }
 
     public function testGetContents()
     {
-        $file = new FileObject(vfsStream::url('root/some.file'));
+        $this->storage->createFile('some.file');
+        $this->storage->filePutContents('some.file', 'some text');
+
+        $file = new FileObject($this->storage->getPath('some.file'));
 
         $this->assertSame('some text', $file->getContents());
     }
 
     public function testGetLines()
     {
-        $file = new FileObject(vfsStream::url('root/three_lines.file'));
+        $this->storage->createFile('three_lines.file');
+        $this->storage->filePutContents('three_lines.file', "one\ntwo\nthree");
+
+        $file = new FileObject($this->storage->getPath('three_lines.file'));
 
         $this->assertSame(array("one\n", "two\n", 'three'), $file->getLines());
     }
 
     public function testFindLineByNumber()
     {
-        $file = new FileObject(vfsStream::url('root/three_lines.file'));
+        $this->storage->createFile('three_lines.file');
+        $this->storage->filePutContents('three_lines.file', "one\ntwo\nthree");
+
+        $file = new FileObject($this->storage->getPath('three_lines.file'));
 
         $this->assertSame("two\n", $file->findLineByNumber(1));
     }
 
     public function testFindLineByNumber_LineNotExist()
     {
-        $file = new FileObject(vfsStream::url('root/three_lines.file'));
+        $this->storage->createFile('three_lines.file');
+        $this->storage->filePutContents('three_lines.file', "one\ntwo\nthree");
+
+        $file = new FileObject($this->storage->getPath('three_lines.file'));
 
         $this->assertNull($file->findLineByNumber(3));
     }
 
     public function testFindLineByNumber_EmptyFile()
     {
-        $file = new FileObject(vfsStream::url('root/empty.file'));
+        $this->storage->createFile('empty.file');
 
-        $this->assertNull($file->findLineByNumber(0));
+        $file = new FileObject($this->storage->getPath('empty.file'));
+
+        $this->assertEquals('', $file->findLineByNumber(0));
     }
 
     public function testFindRandomLine_FileContainsOneLine()
     {
-        $file = new FileObject(vfsStream::url('root/some.file'));
+        $this->storage->createFile('some.file');
+        $this->storage->filePutContents('some.file', 'some text');
 
-        $this->assertSame("some text", $file->findRandomLine());
+        $file = new FileObject($this->storage->getPath('some.file'));
+
+        $this->assertSame('some text', $file->findRandomLine());
     }
 
     public function testFindLineByNumber_EmptyLine()
     {
-        $file = new FileObject(vfsStream::url('root/three_lines.file'));
+        $this->storage->createFile('three_lines.file');
+        $this->storage->filePutContents('three_lines.file', "one\ntwo\nthree");
+
+        $file = new FileObject($this->storage->getPath('three_lines.file'));
 
         $this->assertNull($file->findLineByNumber(3));
     }
 
     public function testFindLineByString()
     {
-        $file = new FileObject(vfsStream::url('root/three_lines.file'));
+        $this->storage->createFile('three_lines.file');
+        $this->storage->filePutContents('three_lines.file', "one\ntwo\nthree");
+
+        $file = new FileObject($this->storage->getPath('three_lines.file'));
 
         $this->assertSame('three', $file->findLineByString('hr'));
     }
 
     public function testFindLineByString_FindPositionSet()
     {
-        $file = new FileObject(vfsStream::url('root/three_lines.file'));
+        $this->storage->createFile('three_lines.file');
+        $this->storage->filePutContents('three_lines.file', "one\ntwo\nthree");
+
+        $file = new FileObject($this->storage->getPath('three_lines.file'));
 
         $this->assertSame('three', $file->findLineByString('hr', 1));
     }
 
     public function testFindLineByString_LineNotExist()
     {
-        $file = new FileObject(vfsStream::url('root/three_lines.file'));
+        $this->storage->createFile('three_lines.file');
+        $this->storage->filePutContents('three_lines.file', "one\ntwo\nthree");
+
+        $file = new FileObject($this->storage->getPath('three_lines.file'));
 
         $this->assertNull($file->findLineByString('fifth'));
     }
@@ -149,28 +169,32 @@ class FileObjectTest extends \PHPUnit_Framework_TestCase
             }
         );
 
-        $file = new FileObject(vfsStream::url('root/three_lines.file'));
+        $this->storage->createFile('three_lines.file');
+        $this->storage->filePutContents('three_lines.file', "one\ntwo\nthree");
+
+        $file = new FileObject($this->storage->getPath('three_lines.file'));
 
         $this->assertSame("two\n", $file->findRandomLine());
     }
 
     public function testFindRandomLine_EmptyFile()
     {
-        $file = new FileObject(vfsStream::url('root/empty.file'));
+        $this->storage->createFile('empty.file');
 
-        $this->assertNull($file->findRandomLine());
+        $file = new FileObject($this->storage->getPath('empty.file'));
+
+        $this->assertEquals('', $file->findRandomLine());
     }
 
     public function testCopyTo()
     {
-        $file = new FileObject(vfsStream::url('root/some.file'));
-        $file->copyTo(vfsStream::url('root/directory/some.file'));
+        $this->storage->createDirectory('from/');
+        $this->storage->createFile('from/some.file');
+        $this->storage->createDirectory('to/');
 
-        $this->assertTrue($this->root->hasChild('directory'));
-        $this->assertTrue($this->root->getChild('directory')->hasChild('some.file'));
-        $this->assertEquals(
-            'some text',
-            $this->root->getChild('directory')->getChild('some.file')->getContent()
-        );
+        $file = new FileObject($this->storage->getPath('from/some.file'));
+        $file->copyTo($this->storage->getPath('to/some.file'));
+
+        $this->storage->fileExists('to/some.txt');
     }
 }

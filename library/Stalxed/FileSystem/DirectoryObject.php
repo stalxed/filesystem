@@ -15,15 +15,6 @@ class DirectoryObject extends \SplFileInfo
         $this->setInfoClass('Stalxed\FileSystem\FileInfo');
     }
 
-    public function getRealPath()
-    {
-        if (parse_url($this->getPathname(), PHP_URL_SCHEME) == 'vfs') {
-            return $this->getPathname();
-        }
-
-        return parent::getRealPath();
-    }
-
     /**
      * Возвращает размер директории.
      *
@@ -97,10 +88,10 @@ class DirectoryObject extends \SplFileInfo
         }
 
         $newDestDir = new FileInfo($destDir->getRealPath() . '/' . $this->getBasename());
-        if ( ! $newDestDir->isDir()) {
+        if ($newDestDir->isLink() || $newDestDir->isFile()) {
+            throw new Exception\UnexpectedValueException();
+        } elseif (! $newDestDir->isDir()) {
             $newDestDir->control()->create();
-        } elseif ($copyMode == CopyMode::ABORT_IF_EXISTS) {
-            throw new Exception\AbortException();
         }
 
         $this->coping($this->createRecursiveDirectoryIterator(), $newDestDir->getRealPath(), $dirmode, $filemode);
@@ -126,14 +117,16 @@ class DirectoryObject extends \SplFileInfo
             $destDir = new FileInfo($pathDestDir . '/' . $fileinfo->getBasename());
 
             if ($iterator->hasChildren()) {
-                if (! $destDir->isDir()) {
+                if ($destDir->isLink() || $destDir->isFile()) {
+                    throw new Exception\UnexpectedValueException();
+                } elseif (! $destDir->isDir()) {
                     $destDir->controlDirectory()->create($dirmode);
-                } elseif($copyMode == CopyMode::ABORT_IF_EXISTS) {
-                    throw new Exception\AbortException();
                 }
 
                 $this->coping($iterator->getChildren(), $destDir->getRealPath(), $dirmode, $filemode);
-            } else {
+            } elseif ($fileinfo->isLink()) {
+                $fileinfo->openLink()->copyTo($destDir->getRealPath(), $copyMode);
+            } elseif($fileinfo->isFile()) {
                 $fileinfo->openFile()->copyTo($destDir->getRealPath(), $copyMode);
             }
         }

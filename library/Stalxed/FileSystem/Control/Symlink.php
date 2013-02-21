@@ -3,7 +3,7 @@ namespace Stalxed\FileSystem\Control;
 
 use Stalxed\FileSystem\FileInfo;
 
-class Link
+class Symlink
 {
     private $fileinfo;
 

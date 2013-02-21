@@ -1,121 +1,117 @@
 <?php
 namespace StalxedTest\FileSystem;
 
-use org\bovigo\vfs\vfsStream;
 use Stalxed\FileSystem\Control;
 use Stalxed\FileSystem\DirectoryObject;
 use Stalxed\FileSystem\FileInfo;
+use StalxedTest\FileSystem\TestHelper\Storage;
 
 class FileInfoTest extends \PHPUnit_Framework_TestCase
 {
-    private $root;
+    private $storage;
 
     protected function setUp()
     {
         parent::setUp();
 
-        $structure = array(
-            'some_directory'  => array(
-                'some1.file' => 'some text one',   // 13 bits
-                'some2.file' => 'some text two',   // 13 bits
-                'some3.file' => 'some text three'  // 15 bits
-            ),
-            'empty_directory' => array(),
-            'some.file'       => 'some text',      // 9 bits
-            'empty.file'      => ''                // 0 bit
-        );
-        $this->root = vfsStream::setup('root', null, $structure);
+        $this->storage = new Storage();
     }
 
-    public function testGetRealPath_DirectoryInFileSystem()
+    protected function tearDown()
     {
-        $fileinfo = new FileInfo(__DIR__ . '/././.');
+        $this->storage->tearDown();
 
-        $this->assertEquals(__DIR__, $fileinfo->getRealPath());
-    }
-
-    public function testGetRealPath_DirectoryInVfs()
-    {
-        $fileinfo = new FileInfo(vfsStream::url('root/some_directory'));
-
-        $this->assertEquals($fileinfo->getPathname(), $fileinfo->getRealPath());
-    }
-
-    public function testGetRealPath_FileInFileSystem()
-    {
-        $fileinfo = new FileInfo(__DIR__ . '/./././' . basename(__FILE__));
-
-        $this->assertEquals(__FILE__, $fileinfo->getRealPath());
-    }
-
-    public function testGetRealPath_FileInVfs()
-    {
-        $fileinfo = new FileInfo(vfsStream::url('root/some.file'));
-
-        $this->assertEquals($fileinfo->getPathname(), $fileinfo->getRealPath());
+        parent::tearDown();
     }
 
     public function testGetSize_SomeDirectory()
     {
-        $fileinfo = new FileInfo(vfsStream::url('root/some_directory'));
+        $this->storage->createDirectory('some_directory/');
+        $this->storage->createFile('some_directory/some1.file');
+        $this->storage->filePutContents('some_directory/some1.file', 'some text one');   // 13 bits
+        $this->storage->createFile('some_directory/some2.file');
+        $this->storage->filePutContents('some_directory/some2.file', 'some text two');   // 13 bits
+        $this->storage->createFile('some_directory/some3.file');
+        $this->storage->filePutContents('some_directory/some3.file', 'some text three'); // 15 bits
+
+        $fileinfo = new FileInfo($this->storage->getPath('some_directory/'));
 
         $this->assertEquals(41, $fileinfo->getSize());
     }
 
     public function testGetSize_SomeFile()
     {
-        $fileinfo = new FileInfo(vfsStream::url('root/some.file'));
+        $this->storage->createFile('some.file');
+        $this->storage->filePutContents('some.file', 'some text one'); // 13 bits
 
-        $this->assertEquals(9, $fileinfo->getSize());
+        $fileinfo = new FileInfo($this->storage->getPath('some.file'));
+
+        $this->assertEquals(13, $fileinfo->getSize());
     }
 
+    /**
+     * @expectedException Stalxed\FileSystem\Exception\PathNotFoundException
+     */
     public function testGetSize_UnknownPath()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\PathNotFoundException');
-
-        $fileinfo = new FileInfo(vfsStream::url('root/nonexistent_directory/nonexistent.file'));
+        $fileinfo = new FileInfo($this->storage->getPath('nonexistent_directory/nonexistent.file'));
         $fileinfo->getSize();
     }
 
     public function testIsEmpty_DirectoryContainingFiles()
     {
-        $fileinfo = new FileInfo(vfsStream::url('root/some_directory/'));
+        $this->storage->createDirectory('some_directory/');
+        $this->storage->createFile('some_directory/some1.file');
+        $this->storage->createFile('some_directory/some2.file');
+        $this->storage->createFile('some_directory/some3.file');
+
+        $fileinfo = new FileInfo($this->storage->getPath('some_directory/'));
 
         $this->assertFalse($fileinfo->isEmpty());
     }
 
     public function testIsEmpty_EmptyDirectory()
     {
-        $fileinfo = new FileInfo(vfsStream::url('root/empty_directory'));
+        $this->storage->createDirectory('empty_directory/');
+
+        $fileinfo = new FileInfo($this->storage->getPath('empty_directory/'));
 
         $this->assertTrue($fileinfo->isEmpty());
     }
 
     public function testIsEmpty_FileContainsText()
     {
-        $fileinfo = new FileInfo(vfsStream::url('root/some.file'));
+        $this->storage->createFile('some.file');
+        $this->storage->filePutContents('some.file', 'some text');
+
+        $fileinfo = new FileInfo($this->storage->getPath('some.file'));
 
         $this->assertFalse($fileinfo->isEmpty());
     }
 
     public function testIsEmpty_EmptyFile()
     {
-        $fileinfo = new FileInfo(vfsStream::url('root/empty.file'));
+        $this->storage->createFile('some.file');
+
+        $fileinfo = new FileInfo($this->storage->getPath('some.file'));
 
         $this->assertTrue($fileinfo->isEmpty());
     }
 
+    /**
+     * @expectedException Stalxed\FileSystem\Exception\PathNotFoundException
+     */
     public function testIsEmpty_UnknownPath()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\PathNotFoundException');
-
-        $fileinfo = new FileInfo(vfsStream::url('root/nonexistent_directory/nonexistent.file'));
+        $fileinfo = new FileInfo($this->storage->getPath('nonexistent_directory/nonexistent.file'));
         $fileinfo->isEmpty();
     }
 
     public function testOpenDirectory_SomeDirectory()
     {
-        $fileinfo = new FileInfo(vfsStream::url('root/some_directory'));
+        $this->storage->createDirectory('some_directory/');
+
+        $fileinfo = new FileInfo($this->storage->getPath('some_directory/'));
 
         $expected = new DirectoryObject($fileinfo->getRealPath());
         $this->assertEquals($expected, $fileinfo->openDirectory());
@@ -123,7 +119,9 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
 
     public function testControl_SomeDirectory()
     {
-        $fileinfo = new FileInfo(vfsStream::url('root/some_directory'));
+        $this->storage->createDirectory('some_directory/');
+
+        $fileinfo = new FileInfo($this->storage->getPath('some_directory/'));
 
         $expected = new Control\Directory($fileinfo);
         $this->assertEquals($expected, $fileinfo->control());
@@ -131,33 +129,20 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
 
     public function testControl_SomeFile()
     {
-        $fileinfo = new FileInfo(vfsStream::url('root/some.file'));
+        $this->storage->createFile('some.file');
+
+        $fileinfo = new FileInfo($this->storage->getPath('some.file'));
 
         $expected = new Control\File($fileinfo);
         $this->assertEquals($expected, $fileinfo->control());
     }
 
-    public function testControl_NonexistentDirectory()
-    {
-        $fileinfo = new FileInfo(vfsStream::url('root/nonexistent_directory'));
-
-        $expected = new Control\Directory($fileinfo);
-        $this->assertEquals($expected, $fileinfo->control(FileInfo::TYPE_DIRECTORY));
-    }
-
-    public function testControl_NonexistentFile()
-    {
-        $fileinfo = new FileInfo(vfsStream::url('root/nonexistent.file'));
-
-        $expected = new Control\File($fileinfo);
-        $this->assertEquals($expected, $fileinfo->control(FileInfo::TYPE_FILE));
-    }
-
+    /**
+     * @expectedException Stalxed\FileSystem\Exception\PathNotFoundException
+     */
     public function testControl_UnknownPath()
     {
-        $this->setExpectedException('Stalxed\FileSystem\Exception\PathNotFoundException');
-
-        $fileinfo = new FileInfo(vfsStream::url('root/nonexistent_directory/nonexistent.file'));
+        $fileinfo = new FileInfo($this->storage->getPath('nonexistent_directory/nonexistent.file'));
         $fileinfo->control();
     }
 }

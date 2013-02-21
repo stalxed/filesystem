@@ -21,7 +21,7 @@ class File implements ControlInterface
             throw new Exception\UnexpectedValueException();
         }
 
-        if (! @touch($this->fileinfo->getRealPath())) {
+        if (! @touch($this->fileinfo->getPathname())) {
             throw new Exception\PermissionDeniedException();
         }
         $this->chmod($mode);
@@ -38,14 +38,16 @@ class File implements ControlInterface
         }
     }
 
-    public function chmod($chmod)
+    public function chmod($mode)
     {
         if (! $this->fileinfo->isFile()) {
             throw new Exception\FileNotFoundException();
         }
 
-        if (! @chmod($this->fileinfo->getRealPath(), $chmod)) {
+        $old = umask(0);
+        if (! @chmod($this->fileinfo->getRealPath(), $mode)) {
             throw new Exception\PermissionDeniedException();
         }
+        umask($old);
     }
 }

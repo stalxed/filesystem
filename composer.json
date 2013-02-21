@@ -15,7 +15,6 @@
 		"stalxed/system": "0.1.*"
 	},
     "require-dev": {
-        "mikey179/vfsStream": "1.1.*",
         "symfony/class-loader": "2.1.*"
     },
 	"autoload": {

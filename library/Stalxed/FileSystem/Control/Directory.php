@@ -18,9 +18,11 @@ class Directory extends \SplFileInfo implements ControlInterface
             throw new Exception\UnexpectedValueException();
         }
 
-        if (! @mkdir($this->fileinfo->getRealPath(), $mode, true)) {
+        $old = umask(0);
+        if (! @mkdir($this->fileinfo->getPathname(), $mode, true)) {
             throw new Exception\PermissionDeniedException();
         }
+        umask($old);
     }
 
     public function delete()
