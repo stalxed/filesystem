@@ -56,6 +56,11 @@ class FileInfo extends \SplFileInfo
         return new DirectoryObject($this->getRealPath());
     }
 
+    public function openFile($openMode = 'r', $useIncludePath = 'false')
+    {
+        return new FileObject($this->getRealPath(), $openMode, $useIncludePath);
+    }
+
     public function control($type = null)
     {
         if ($this->isLink()) {

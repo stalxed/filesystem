@@ -4,6 +4,7 @@ namespace StalxedTest\FileSystem;
 use Stalxed\FileSystem\Control;
 use Stalxed\FileSystem\DirectoryObject;
 use Stalxed\FileSystem\FileInfo;
+use Stalxed\FileSystem\FileObject;
 use StalxedTest\FileSystem\TestHelper\Storage;
 
 class FileInfoTest extends \PHPUnit_Framework_TestCase
@@ -115,6 +116,26 @@ class FileInfoTest extends \PHPUnit_Framework_TestCase
 
         $expected = new DirectoryObject($fileinfo->getRealPath());
         $this->assertEquals($expected, $fileinfo->openDirectory());
+    }
+
+    public function testOpenFile_SomeFile()
+    {
+        $this->storage->createFile('some.file');
+
+        $fileinfo = new FileInfo($this->storage->getPath('some.file'));
+
+        $expected = new FileObject($this->storage->getPath('some.file'));
+        $this->assertEquals($expected, $fileinfo->openFile());
+    }
+
+    public function testOpenFile_SetModeW()
+    {
+        $this->storage->createFile('some.file');
+
+        $fileinfo = new FileInfo($this->storage->getPath('some.file'));
+
+        $expected = new FileObject($this->storage->getPath('some.file'), 'w');
+        $this->assertEquals($expected, $fileinfo->openFile('w'));
     }
 
     public function testControl_SomeDirectory()
