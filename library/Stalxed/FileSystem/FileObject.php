@@ -82,7 +82,7 @@ class FileObject extends \SplFileObject
     public function safeWrite($content)
     {
         //for () {
-        if ($this->flock(LOCK_EX | LOCK_NB)) {
+        if ($this->flock(LOCK_EX)) {
             $this->fwrite($content);
             $this->flock(LOCK_UN);
         }
