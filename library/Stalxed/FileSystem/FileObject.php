@@ -81,14 +81,10 @@ class FileObject extends \SplFileObject
      */
     public function safeWrite($content)
     {
-        //for () {
         if ($this->flock(LOCK_EX)) {
             $this->fwrite($content);
             $this->flock(LOCK_UN);
         }
-        // }
-
-        throw new Exception\RuntimeException('Failed to lock file.', $this->path);
     }
 
     /**

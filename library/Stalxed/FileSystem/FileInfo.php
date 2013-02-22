@@ -53,12 +53,12 @@ class FileInfo extends \SplFileInfo
 
     public function openDirectory()
     {
-        return new DirectoryObject($this->getRealPath());
+        return new DirectoryObject($this->getPathname());
     }
 
     public function openFile($openMode = 'r', $useIncludePath = 'false')
     {
-        return new FileObject($this->getRealPath(), $openMode, $useIncludePath);
+        return new FileObject($this->getPathname(), $openMode, $useIncludePath);
     }
 
     public function control($type = null)
