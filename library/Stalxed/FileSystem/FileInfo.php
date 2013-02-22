@@ -56,9 +56,9 @@ class FileInfo extends \SplFileInfo
         return new DirectoryObject($this->getPathname());
     }
 
-    public function openFile($openMode = 'r', $useIncludePath = 'false')
+    public function openFile($openMode = 'r', $useIncludePath = 'false', $context = null)
     {
-        return new FileObject($this->getPathname(), $openMode, $useIncludePath);
+        return new FileObject($this->getPathname(), $openMode, $useIncludePath, $context);
     }
 
     public function control($type = null)

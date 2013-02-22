@@ -5,9 +5,13 @@ use Stalxed\System\Random;
 
 class FileObject extends \SplFileObject
 {
-    public function __construct($filename, $openMode = 'r', $useIncludePath = 'false')
+    public function __construct($filename, $openMode = 'r', $useIncludePath = 'false', $context = null)
     {
-        parent::__construct($filename, $openMode, $useIncludePath);
+        if (isset($context)) {
+            parent::__construct($filename, $openMode, $useIncludePath, $context);
+        } else {
+            parent::__construct($filename, $openMode, $useIncludePath);
+        }
 
         $this->setFileClass('Stalxed\FileSystem\FileObject');
         $this->setInfoClass('Stalxed\FileSystem\FileInfo');
