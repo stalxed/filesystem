@@ -17,72 +17,40 @@ class FileObject extends \SplFileObject
         $this->setInfoClass('Stalxed\FileSystem\FileInfo');
     }
 
-    /**
-     * Проверяет, является ли файл пустым.
-     *
-     * @return boolean
-     */
     public function isEmpty()
     {
         return ($this->getSize() == 0);
     }
 
-    /**
-     * Возвращает количество строчек в файле.
-     *
-     * @return integer
-     */
-    public function getLineCount()
+    public function countLines()
     {
         $count = 0;
         foreach ($this as $temp) {
             ++$count;
         }
 
+        $this->rewind();
+
         return $count;
     }
 
-    /**
-     * Читает файл и возвращает содержимое.
-     *
-     * @return string
-     * @throws System_FSException
-     */
     public function getContents()
     {
-        $content = '';
-        while (! $this->eof()) {
-            $content .= $this->fgets();
-        }
-
-        return $content;
+        return file_get_contents($this->getRealPath());
     }
 
-    /**
-     * Читает файл и возвращает содержимое в виде массива.
-     * Элементы массива являются строчками файла.
-     * Переносы строк удаляются.
-     *
-     * @return array
-     * @throws System_FSException
-     */
     public function getLines()
     {
         $lines = array();
-        foreach ($this as $key => $line) {
-            $lines[$key] = $line;
+        foreach ($this as $line) {
+            $lines[] = $line;
         }
+
+        $this->rewind();
 
         return $lines;
     }
 
-    /**
-     * Записывает содержимое переменной в конец файла.
-     * Если файл не существует, то создаёт его.
-     *
-     * @param string $content
-     * @throws System_FSException
-     */
     public function safeWrite($content)
     {
         if ($this->flock(LOCK_EX)) {
@@ -91,40 +59,26 @@ class FileObject extends \SplFileObject
         }
     }
 
-    /**
-     * Ищет строчку по номеру.
-     *
-     * @param integer $line_number
-     * @return string
-     */
     public function findLineByNumber($line_number)
     {
         $desired_line = null;
 
-        $this->rewind();
+        $i = 0;
+        foreach ($this as $line) {
+            if ($i == $line_number) {
+                $desired_line = $line;
 
-        try {
-            for ($i = 0; $i < $line_number; $i++) {
-                $this->fgets();
+                break;
             }
 
-            $desired_line = $this->fgets();
-        } catch (\Exception $e) {
-            return null;
+            ++$i;
         }
+
+        $this->rewind();
 
         return $desired_line;
     }
 
-    /**
-     * Ищет строчку по фрагменту строки.
-     * Если указан второй аргумент, то проверяется начальная
-     * позиция вхождения.
-     *
-     * @param string $desired_value
-     * @param integer $desired_start_position
-     * @return string
-     */
     public function findLineByString($desired_value, $desired_start_position = null)
     {
         $desired_line = null;
@@ -140,43 +94,31 @@ class FileObject extends \SplFileObject
             }
         }
 
+        $this->rewind();
+
         return $desired_line;
     }
 
-    /**
-     * Возвращает случайную строчку из файла.
-     *
-     * @return string
-     */
     public function findRandomLine()
     {
         $desired_line = null;
 
         $random = new Random();
 
-        for ($i = 0; !$this->eof(); $i++) {
-            $line = $this->fgets();
-
+        $i = 0;
+        foreach ($this as $line) {
             if ($random->generateNumber(0, $i) < 1) {
                 $desired_line = $line;
             }
+
+            ++$i;
         }
+
+        $this->rewind();
 
         return $desired_line;
     }
 
-    /**
-     * Копирует файл.
-     * Если файл назначения уже существует, то его копирование
-     * не выполняет. Если задан $filename, то файл назначения
-     * будет иметь новое имя. По умолчанию устанавливает права
-     * доступа 0644.
-     *
-     * @param string $directory_destination_path
-     * @param string $filename
-     * @param integer $mode
-     * @throws System_FSException
-     */
     public function copyTo($pathDestinationFile, $copyMode = CopyMode::SKIP_EXISTING, $mode = 0644)
     {
         $destinationFile = new FileInfo($pathDestinationFile);
