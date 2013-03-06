@@ -12,7 +12,7 @@
     ],
 	"require": {
 	    "php": ">=5.3.0",
-		"stalxed/system": "0.1.*"
+		"stalxed/system": "0.2.*"
 	},
     "require-dev": {
         "symfony/class-loader": "2.1.*"
