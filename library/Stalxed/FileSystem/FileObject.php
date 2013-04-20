@@ -107,7 +107,7 @@ class FileObject extends \SplFileObject
 
         $i = 0;
         foreach ($this as $line) {
-            if ($random->generateNumber(0, $i) < 1) {
+            if ($random->generateDigit(0, $i) < 1) {
                 $desired_line = $line;
             }
 
